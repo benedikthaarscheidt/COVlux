@@ -1,0 +1,147 @@
+%% 1. INITIALIZATION
+
+
+% --- PATHS ---
+modelPath = '/Users/benedikthaarscheidt/M.Sc./master_thesis/Models/generic_models/E_coli/iML1515_pruned_permissive_biomass_loopless_v6.mat';
+expressionPath = '/Users/benedikthaarscheidt/M.Sc./master_thesis/scripts/data_prep/clustered_data_v2/Ecoli_eBW4_nFeat2000_Dims7_Res0.2/data_files/cluster_1_logCPM.csv';
+targetBiomassName = 'BIOMASS_Ec_iML1515_WT_75p37M';
+
+% Load Model
+data = load(modelPath, 'pruned_ir');
+model = data.pruned_ir;
+[m, n] = size(model.S);
+
+%% 2. FIX MEDIA & BIOMASS (The "Nuclear" Option)
+fprintf('\n========== MEDIA SETUP ==========\n');
+bio_idx = find(strcmp(model.rxns, targetBiomassName));
+if isempty(bio_idx), bio_idx = find(contains(lower(model.rxns), 'wt_75p37m'), 1); end
+model = changeObjective(model, model.rxns{bio_idx});
+fprintf('Biomass Target: %s (Index %d)\n', model.rxns{bio_idx}, bio_idx);
+
+% OPEN MEDIA: Open all '_b' (back) exchanges to 1000
+uptake_rxns = find(contains(model.rxns, 'EX_') & contains(model.rxns, '_b'));
+model.ub(uptake_rxns) = 1000; 
+model.lb(uptake_rxns) = 0;
+
+% VERIFY BASE GROWTH
+sol_base = optimizeCbModel(model);
+fprintf('BASE MODEL GROWTH: %.4f\n', sol_base.f);
+if sol_base.f < 1e-6, error('Base model is dead.'); end
+
+%% 3. CALCULATE ESSENTIAL REACTIONS (The Safety Net)
+% We calculate exactly which reactions are required to support the Base Growth.
+% We will FORCE iMAT and FASTCORE to keep these.
+fprintf('\n========== CALCULATING ESSENTIAL CORE ==========\n');
+
+% Identify essential reactions (approx 200-300 rxns)
+% We use a fast heuristic: Run FBA, then minimize total flux while fixing Biomass > 0.1
+model_min = model;
+model_min.lb(bio_idx) = 0;
+% Minimize sum of absolute fluxes (L1 norm) to find the most efficient path
+minFluxSol = optimizeCbModel(model_min, 'min', 'one'); 
+
+% Anything with significant flux in this "Minimum" solution is structurally essential
+essential_indices = find(abs(minFluxSol.x) > 1e-8);
+fprintf('identified %d essential reactions supporting growth.\n', length(essential_indices));
+
+%% 4. PROCESS EXPRESSION
+fprintf('\n========== MAPPING EXPRESSION ==========\n');
+T = readtable(expressionPath, 'VariableNamingRule', 'preserve');
+csv_headers = T.Properties.VariableNames;
+[valid_genes, ~, ~] = intersect(csv_headers, model.genes);
+gene_vals = mean(T{:, valid_genes}, 1, 'omitnan')';
+
+[rxnExpression, ~] = mapExpressionToReactions(model, ...
+    struct('gene', {valid_genes}, 'value', gene_vals));
+
+valid_expr = rxnExpression(rxnExpression > -1);
+RH_indices = find(rxnExpression >= prctile(valid_expr, 75));
+RL_indices = find(rxnExpression < prctile(valid_expr, 25) & rxnExpression > -1);
+
+% PROTECT ESSENTIALS: Remove them from "Low Confidence" list
+RL_indices = RL_indices;%setdiff(RL_indices, essential_indices);
+% Add them to High Confidence list (for iMAT)
+RH_protected = RH_indices;%unique([RH_indices; essential_indices]);
+
+%% 5. RUN iMAT (With Essentiality + Lower Threshold)
+fprintf('\n========== RUNNING iMAT (PROTECTED) ==========\n');
+
+% MILP Setup
+f = zeros(4*n, 1);
+f(n + RH_protected) = 1;     % y+
+f(2*n + RH_protected) = 1;   % y-
+f(3*n + RL_indices) = 1;     % y_low
+c = -f; 
+
+A_eq = [model.S, sparse(m, 3*n)];
+b_eq = zeros(m, 1);
+lb = [model.lb; zeros(3*n, 1)];
+ub = [model.ub; ones(3*n, 1)];
+
+% Constraint: Biomass >= 0.1
+lb(bio_idx) = max(lb(bio_idx), 0); 
+
+% Inequality Constraints (Simplified Generation)
+% ... [Standard iMAT constraints as used before] ...
+% (Pasting abbreviated construction for brevity - same as previous script)
+rows=[]; cols=[]; vals=[]; rhs=[]; cnt=0; v_min=model.lb; v_max=model.ub; eps=0.001;
+k=RH_protected; nk=length(k);
+if nk>0, r=(cnt+1:cnt+nk)'; rows=[rows;r;r]; cols=[cols;k;n+k]; vals=[vals;-ones(nk,1);(eps-v_min(k))]; rhs=[rhs;-v_min(k)]; cnt=cnt+nk; end % Eq3
+if nk>0, r=(cnt+1:cnt+nk)'; rows=[rows;r;r]; cols=[cols;k;2*n+k]; vals=[vals;ones(nk,1);(v_max(k)+eps)]; rhs=[rhs;v_max(k)]; cnt=cnt+nk; end % Eq4
+k=RL_indices; nk=length(k);
+if nk>0, r=(cnt+1:cnt+nk)'; rows=[rows;r;r]; cols=[cols;k;3*n+k]; vals=[vals;-ones(nk,1);v_min(k)]; rhs=[rhs;-v_min(k)]; cnt=cnt+nk; end % Eq5a
+if nk>0, r=(cnt+1:cnt+nk)'; rows=[rows;r;r]; cols=[cols;k;3*n+k]; vals=[vals;ones(nk,1);v_max(k)]; rhs=[rhs;v_max(k)]; cnt=cnt+nk; end % Eq5b
+A_ineq = sparse(rows, cols, vals, cnt, 4*n); b_ineq = rhs;
+
+% Solve
+milp = struct('A',[A_eq;A_ineq], 'b',[b_eq;b_ineq], 'c',c, 'lb',lb, 'ub',ub, ...
+    'csense',[repmat('E',m,1); repmat('L',cnt,1)], 'vartype',[repmat('C',n,1); repmat('B',3*n,1)], 'osense',1);
+sol_imat = solveCobraMILP(milp);
+
+if sol_imat.stat == 1
+    imat_fluxes = sol_imat.full(1:n);
+    % CRITICAL FIX: LOWER TOLERANCE FOR TRACE MINERALS
+    kept_indices_imat = find(abs(imat_fluxes) > 1e-9); 
+    
+    % Verify Biomass in Solution
+    fprintf('Raw Solver Biomass Flux: %.4f\n', imat_fluxes(bio_idx));
+    
+    % Verify Pruned Model
+    model_imat = model;
+    del = setdiff(1:n, kept_indices_imat);
+    model_imat.lb(del)=0; model_imat.ub(del)=0;
+    res = optimizeCbModel(model_imat);
+    fprintf('iMAT PRUNED BIOMASS: %.4f\n', res.f);
+else
+    warning('iMAT Solver Failed');
+    kept_indices_imat = [];
+end
+
+%% 6. RUN FASTCORE (With Essentiality)
+fprintf('\n========== RUNNING FASTCORE (PROTECTED) ==========\n');
+
+% Core = High Expression + ESSENTIAL REACTIONS
+core_indices = unique([RH_indices; essential_indices]);
+
+% Run
+% We use the verified model (media open)
+model_fastcore = fastcore(model, core_indices, 1e-9); % Lower epsilon
+
+% Validate
+sol_fast = optimizeCbModel(model_fastcore);
+fprintf('FASTCORE MODEL BIOMASS: %.4f\n', sol_fast.f);
+
+%% 7. COMPARE
+fprintf('\n========== COMPARISON ==========\n');
+[~, kept_indices_fastcore] = ismember(model_fastcore.rxns, model.rxns);
+
+fprintf('%-20s | %-12s | %-12s\n', 'Metric', 'iMAT', 'FASTCORE');
+fprintf('%-20s | %-12d | %-12d\n', 'Reactions Kept', length(kept_indices_imat), length(kept_indices_fastcore));
+if exist('res','var'), b_imat=res.f; else, b_imat=0; end
+fprintf('%-20s | %-12.4f | %-12.4f\n', 'Biomass Flux', b_imat, sol_fast.f);
+
+% Save
+T_out = table(model.rxns, 'VariableNames', {'RxnID'});
+T_out.iMAT = ismember(1:n, kept_indices_imat)';
+T_out.FASTCORE = ismember(1:n, kept_indices_fastcore)';
+writetable(T_out, 'Functional_Comparison.csv');

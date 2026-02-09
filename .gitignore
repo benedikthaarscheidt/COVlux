@@ -1,0 +1,10 @@
+# --- System Files ---
+.DS_Store
+
+# --- R Environment (CRITICAL: .RData is 110MB) ---
+.RData
+.Rhistory
+
+# --- Project Data & Outputs ---
+data/
+results/

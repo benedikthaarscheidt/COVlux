@@ -1,0 +1,305 @@
+import os
+import multiprocessing
+import numpy as np
+import scipy.io
+import scipy.sparse as sp
+from gurobipy import Model, GRB
+from scipy.linalg import null_space
+from itertools import combinations
+
+# 0) Gurobi threads & environment
+def get_num_threads():
+    try:
+        return multiprocessing.cpu_count()
+    except:
+        return 1
+
+nThreads = get_num_threads()
+print(f"Using {nThreads} threads for Gurobi")
+os.environ['OMP_NUM_THREADS'] = str(nThreads)
+
+# 1) Load irreversible pruned model
+data = scipy.io.loadmat('/Users/benedikthaarscheidt/M.Sc./master_thesis/Models/generic_models/E_coli/e_coli_core_splitandpruned.mat', variable_names=['pruned_ir'])
+model_ir = data['pruned_ir'][0,0]
+S = sp.csr_matrix(model_ir['S'])
+rxnNames = [r[0] for r in model_ir['rxns'][0]]
+m, n = S.shape
+
+# 2) Parameters
+eps_flux = 1e-5
+tol_balance = 1e-7
+M = 1e3
+badPair_count = 0
+
+# effective upper bounds
+ub_eff = model_ir['ub'].flatten()
+ub_eff[np.isinf(ub_eff)] = M
+
+# 3) Build static MILP template with indicator constraints
+model_template = Model()
+model_template.setParam('Threads', nThreads)
+model_template.modelSense = GRB.MINIMIZE
+
+# variables: v (continuous) and b (binary)
+v = model_template.addVars(n, lb=model_ir['lb'].flatten(), ub=ub_eff, vtype=GRB.CONTINUOUS, name="v")
+b = model_template.addVars(n, lb=0, ub=1, vtype=GRB.BINARY, name="b")
+
+# mass-balance constraints: S @ v = 0
+eqs = []
+for i in range(m):
+    row = S.getrow(i)
+    expr = sum(row[0,j] * v[j] for j in row.indices)
+    eqs.append(model_template.addConstr(expr == 0, name=f"massbal_{i}"))
+
+# import/export cuts
+importCols = []
+exportCols = []
+for j in range(n):
+    col = S[:,j].toarray().flatten()
+    if np.all(col[col!=0] > 0): importCols.append(j)
+    if np.all(col[col!=0] < 0): exportCols.append(j)
+if importCols:
+    model_template.addConstr(sum(b[j] for j in importCols) >= 1, name="cutImp")
+if exportCols:
+    model_template.addConstr(sum(b[j] for j in exportCols) >= 1, name="cutExp")
+
+# indicator constraints linking v and b
+for j in range(n):
+    #model_template.addGenConstrIndicator(b[j], 0, v[j] == 0, name=f"ind0_{j}")
+    #model_template.addGenConstrIndicator(b[j], 1, v[j] >= eps_flux, name=f"ind1_{j}")
+    model_template.addConstr(v[j] >= eps_flux * b[j])
+    model_template.addConstr(       v[j] <= ub_eff[j] * b[j],           name=f"ubLink_{j}")
+
+
+# objective: minimize sum of b
+model_template.setObjective(sum(b[j] for j in range(n)))
+model_template.update()
+
+# 5) Precompute bad-partner map
+badPartner = np.zeros(n, dtype=int)
+name_to_idx = {name: idx for idx, name in enumerate(rxnNames)}
+for i, rn in enumerate(rxnNames):
+    if rn.endswith('_f'):
+        base = rn[:-2]
+        j = name_to_idx.get(base + '_b', None)
+        if j is not None:
+            badPartner[i] = j
+            badPartner[j] = i
+            
+for i, j in enumerate(badPartner):
+    if j>0 and i<j:
+        model_template.addConstr(b[i] + b[j] <= 1,
+                                 name=f"ban_pair_{i}_{j}")
+
+# helper functions
+def apply_nogood_cut(model, supp):
+    pos = [model.getVarByName(f"b[{j}]") for j in supp]
+    # negative for out-of-support
+    oth = [model.getVarByName(f"b[{k}]") for k in range(n) if k not in supp]
+    model.addConstr(
+        sum(pos) - sum(oth) <= len(supp) - 1,
+        name=f"nogood_{'_'.join(map(str,supp))}"
+    )
+    model.update()
+
+
+def reconstruct_efm_flux(S, supp, eps_flux):
+    mat = S[:, supp].toarray()
+    ns  = null_space(mat)
+    # must be 1D null‐space
+    if ns.shape[1] != 1:
+        return None
+
+    v_e = np.abs(ns[:, 0])
+    v_min = v_e.min()
+    # if the null‐space vector has any zero entry, reject
+    if v_min <= 0:
+        return None
+
+    # scale so its minimum entry = eps_flux
+    v_e = v_e / v_min * eps_flux
+
+    # embed back into full vector
+    v_clean = np.zeros(S.shape[1])
+    for idx, val in zip(supp, v_e):
+        v_clean[idx] = val
+    return v_clean
+
+
+def nullity_and_tol(mat):
+    # full SVD on the submatrix
+    sing = np.linalg.svd(mat, compute_uv=False)
+    maxo = sing[0]
+    # data‐driven threshold
+    tol_rank = max(mat.shape) * maxo * np.finfo(float).eps
+    # count singular values above tol_rank
+    rank_est = np.sum(sing > tol_rank)
+    null_dim = mat.shape[1] - rank_est
+    return null_dim, sing, tol_rank
+
+def check_support(xv, xb):
+    # 1) support from b
+    supp = [i for i, bi in enumerate(xb) if bi > 0.5]
+    if not supp:
+        return False, [], None
+
+    # 2) nullity = 1 via data-driven SVD
+    mat = S[:, supp].toarray()
+    null_dim, singvals, tol_rank = nullity_and_tol(mat)
+    if null_dim != 1:
+        print(f"  reject: nullity={null_dim}")
+        return False, supp
+
+    # 3) reconstruct the exact EFM in the nullspace
+    v_clean = reconstruct_efm_flux(S, supp, eps_flux)
+    if v_clean is None:
+        return False, supp
+
+    # 4) minimum-flux guard on the reconstructed mode
+    v_e = v_clean[supp]
+    if np.any(v_e < eps_flux - tol_balance):
+        return False, supp
+
+    # 5) steady-state residual on the reconstructed mode
+    #    (should be ≈0, but we check to be safe)
+    res = np.max(np.abs(mat.dot(v_e)))
+    if res > tol_balance:
+        print(f"  reject after reconstruction: residual={res:.2e}")
+        return False, supp
+
+    # 6) bad-pair exclusion
+    for i in supp:
+        if badPartner[i] in supp:
+            return False, supp
+
+    # passed all tests; return the clean flux
+    return True, supp
+
+
+
+# 6) Enumeration loop
+covered = np.zeros(n, dtype=bool)
+skipped = np.zeros(n, dtype=bool)
+allEFMs = []
+allX = []
+prevUc = 0
+maxSeedAttempts = 50
+
+# seeding & pooling parameters
+pPool = {'OutputFlag':0, 'PoolSearchMode':2, 'PoolSolutions':100, 'TimeLimit':60, 'MIPGap':0.5,
+         'Cuts':1, 'Presolve':2, 'Heuristics':0.5, 'MIPFocus':1, 'Threads':nThreads}
+pSeed = {'OutputFlag':0, 'PoolSearchMode':0, 'PoolSolutions':1, 'TimeLimit':600, 'MIPGap':0.1,
+         'Cuts':-1, 'Presolve':0, 'Heuristics':0.2, 'MIPFocus':3, 'Threads':nThreads}
+common = {'FeasibilityTol':1e-9, 'IntFeasTol':1e-9, 'NumericFocus':3}
+for p in (pPool, pSeed): p.update(common)
+
+def build_model_copy(template):
+    m = template.copy()
+    m.update()
+    return m
+
+global_model = build_model_copy(model_template)
+while np.any(~covered & ~skipped):
+    toTry = np.where(~covered & ~skipped)[0]
+    print(f"=== Next reaction: {len(toTry)} remaining ({np.sum(covered)} covered) ===")
+    uc = next((i for i in toTry if i > prevUc), toTry[0]); prevUc = uc
+
+    # start with fresh local model inheriting permanent cuts
+    local_model = global_model.copy()
+    b_var = local_model.getVarByName(f"b[{uc}]")
+    local_model.addConstr(b_var == 1)
+    local_model.update()
+    acceptedSeeds = 0
+
+    # Seeding: accumulate nogood cuts in local_model
+    for attempt in range(1, maxSeedAttempts+1):
+        
+        local_model.reset()
+    
+        # 2) Push your seeding‐pool params
+        for param, val in pSeed.items():
+            setattr(local_model.Params, param, val)
+        
+        # 3) Re‐optimize
+        local_model.optimize()
+        
+
+        poolSeeds = []
+        if local_model.SolCount > 0:
+            v_vars = [local_model.getVarByName(f"v[{i}]") for i in range(n)]
+            b_vars = [local_model.getVarByName(f"b[{i}]") for i in range(n)]
+
+            for sol in range(local_model.SolCount):
+                local_model.Params.SolutionNumber = sol
+                xv = [vvar.Xn for vvar in v_vars]
+                xb = [bvar.Xn for bvar in b_vars]
+                poolSeeds.append((xv, xb))
+                # evaluate supports and add nogood cuts to local_model
+        valid = []
+        for xv, xb in poolSeeds:
+            ok, supp = check_support(xv, xb)
+            if ok and uc in supp:
+                valid.append((xv, xb, supp))
+            else:
+                apply_nogood_cut(local_model, supp)
+                local_model.reset()
+        if valid:
+            for xv, xb, supp in valid:
+                covered[supp] = True
+                allEFMs.append(supp)
+                allX.append([xv[i] for i in supp])
+            acceptedSeeds = len(valid)
+            print(f"  Seeding: accepted {acceptedSeeds} on attempt {attempt}")
+            break
+        print(f"  Seeding: no valid seeds on attempt {attempt} for reaction {uc}")
+    if acceptedSeeds == 0:
+        print(f"  Skipping reaction {uc} after {maxSeedAttempts} attempts"); skipped[uc]=True
+
+    # Pooling: continue accumulating nogood cuts
+    rem = np.where(~covered)[0]
+    rem_vars = [local_model.getVarByName(f"b[{i}]") for i in rem]
+    local_model.addConstr(sum(rem_vars) >= 1)
+    local_model.update()
+    for k,vp in pPool.items(): setattr(local_model.Params, k, vp)
+    local_model.optimize()
+
+    poolsol=[]
+    if local_model.SolCount > 0:
+        v_vars = [local_model.getVarByName(f"v[{i}]") for i in range(n)]
+        b_vars = [local_model.getVarByName(f"b[{i}]") for i in range(n)]
+
+        for sol in range(local_model.SolCount):
+            local_model.Params.SolutionNumber = sol
+            xv = [vvar.Xn for vvar in v_vars]
+            xb = [bvar.Xn for bvar in b_vars]
+            poolsol.append((xv, xb))
+            # evaluate supports and add nogood cuts to local_model
+    valid = []
+    for xv, xb in poolsol:
+        ok, supp = check_support(xv, xb)
+        if ok and uc in supp:
+            valid.append((xv, xb, supp))
+        
+    if valid:
+        for xv, xb, supp in valid:
+            covered[supp] = True
+            allEFMs.append(supp)
+            allX.append([xv[i] for i in supp])
+        acceptedSeeds = len(valid)
+        print(f"  Pooling: accepted {acceptedSeeds} EFMs")
+        
+# 7) Final report & save
+uncov = np.where(~covered)[0]
+print(f"\nUncovered ({len(uncov)}): {uncov}" if uncov.size else "\nAll covered.")
+skList = np.where(skipped)[0]
+print(f"Skipped ({len(skList)}): {skList}" if skList.size else "")
+print(f"\nDone. badPairs={badPair_count}")
+
+fluxMat = np.zeros((n, len(allEFMs)))
+for i, supp in enumerate(allEFMs):
+    for j, idx in enumerate(supp): fluxMat[idx, i] = allX[i][j]
+
+scipy.io.savemat('EFMs_pool_badpair_nocard_parpool_py.mat',
+                 {'allEFMs': np.array(allEFMs, dtype=object), 'fluxMat': fluxMat,
+                  'covered': covered, 'skipped': skipped, 'badPair_count': badPair_count})
+print("Done.")
