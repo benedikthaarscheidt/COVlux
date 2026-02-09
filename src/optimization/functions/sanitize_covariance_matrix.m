@@ -48,7 +48,7 @@ function [X_clean, stats] = sanitize_covariance_matrix(X_raw, threshold, verbose
     n_removed = sum(mask_noise(:));
     
     % --- 4. Stability (Ridge) ---
-    X_clean = X_clean + 1e-9 * eye(n);
+    %X_clean = X_clean + 1e-9 * eye(n);
     X_clean = project_to_psd(X_clean, 1e-8);
     
     % --- 5. Logging & Visualization ---

@@ -241,8 +241,8 @@ for k = 1:numel(files)
     
     % --- Sanitize Covariance ---
     % Enforce PSD and clean noise
-    [X_use, stats] = sanitize_covariance_matrix(X_use, 1e-5, verbose, plotDir, clusterName);
-    [X_use, scale_factor] = prepare_covariance_matrix(X_use,1000,verbose);
+    [X_use, stats] = sanitize_covariance_matrix(X_use, 0, verbose, plotDir, clusterName);
+    %[X_use, scale_factor] = prepare_covariance_matrix(X_use,1000,verbose);
     
     % --- Load Mean Activity (mu) ---
     % Attempt to find corresponding MEAN file

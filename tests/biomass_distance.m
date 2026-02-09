@@ -216,12 +216,11 @@ for k = 1:length(files)
     else 
         covFile = fullfile(covDir, [cluster_full_name '_COV.csv']);
     end 
-    % Try fallback name if full name fails
-    if ~exist(covFile, 'file')
-         covFile = fullfile(covDir, [short_name '_MRAS_COV.csv']);
-    end
+    if ~exist(covFile, 'file'), covFile = fullfile(covDir, [short_name '_MRAS_COV.csv']); end
     
+    % Initialize vars
     var_cov = NaN; var_imat = NaN; var_fast = NaN;
+    avg_cov = NaN; avg_imat = NaN; avg_fast = NaN; % <--- NEW
     
     if exist(covFile, 'file')
         try
@@ -232,23 +231,32 @@ for k = 1:length(files)
             % Map Model Rxns to X indices
             [~, map_Model_to_X] = ismember(model.rxns, rxns_X);
             
-            % Calculate Total Variance in Data (Trace of X)
+            % Total Variance in Data (Trace of X)
             total_var = trace(X);
             
-            % Helper to calc captured variance
-            calc_var = @(mask) sum(diag(X(map_Model_to_X(mask & map_Model_to_X>0), map_Model_to_X(mask & map_Model_to_X>0)))) / total_var * 100;
+            % Helper 1: Calculate RAW Sum of Variance for a mask
+            get_raw_sum = @(mask) sum(diag(X(map_Model_to_X(mask & map_Model_to_X>0), map_Model_to_X(mask & map_Model_to_X>0))));
+            
+            % Helper 2: Calculate Percentage (Total Explained)
+            calc_pct = @(raw_sum) (raw_sum / total_var) * 100;
             
             % 1. COVlux Fixed
             fixed_cov = kept_cov; fixed_cov(added_cov) = true;
-            var_cov = calc_var(fixed_cov);
+            raw_cov = get_raw_sum(fixed_cov);
+            var_cov = calc_pct(raw_cov); 
+            avg_cov = raw_cov / sum(fixed_cov); % <--- NEW: Raw Sum / Count
             
             % 2. iMAT Fixed
             fixed_imat = kept_imat; fixed_imat(added_imat) = true;
-            var_imat = calc_var(fixed_imat);
+            raw_imat = get_raw_sum(fixed_imat);
+            var_imat = calc_pct(raw_imat);
+            avg_imat = raw_imat / sum(fixed_imat); % <--- NEW
             
             % 3. Fastcore Fixed
             fixed_fast = kept_fast; fixed_fast(added_fast) = true;
-            var_fast = calc_var(fixed_fast);
+            raw_fast = get_raw_sum(fixed_fast);
+            var_fast = calc_pct(raw_fast);
+            avg_fast = raw_fast / sum(fixed_fast); % <--- NEW
             
         catch
             % Covariance load failed
@@ -259,7 +267,12 @@ for k = 1:length(files)
     fprintf('%-20s | %-5d %-5d %-5d | %-5.1f %-5.1f %-5.1f | %-5d %-5d %-5d\n', ...
         short_name, gap_cov, gap_fast, gap_imat, var_cov, var_fast, var_imat, ...
         lost_cov_count, lost_fast_count, lost_imat_count);
-        
+
+    % Save to stats
+    Stats(k).AvgVar_COV = avg_cov;   % <--- NEW
+    Stats(k).AvgVar_FAST = avg_fast; % <--- NEW
+    Stats(k).AvgVar_iMAT = avg_imat; % <--- NEW
+    
     Stats(k).Cluster = string(short_name);
     Stats(k).Gap_COV = gap_cov;
     Stats(k).Gap_FAST = gap_fast;
@@ -277,7 +290,7 @@ outputPdfPath = fullfile(resultsDir, 'Functional_Gap_and_Variance.pdf');
 T = struct2table(Stats);
 
 fig = figure('Name', 'Gap vs Variance', 'Color', 'w', 'Position', [100 100 1200 1500]);
-t = tiledlayout(3, 1, 'Padding', 'compact');
+t = tiledlayout(4, 1, 'Padding', 'compact');
 
 % Plot 1: Functional Gap
 nexttile;
@@ -298,6 +311,14 @@ ylabel('Explained Variance (%)');
 title('2. Variance Captured by Fixed Functional Models');
 xticklabels(T.Cluster); xtickangle(45); grid on;
 ylim([0 100]);
+
+nexttile;
+bar_data_avg = [T.AvgVar_COV, T.AvgVar_FAST, T.AvgVar_iMAT];
+b3 = bar(bar_data_avg, 'grouped');
+b3(1).FaceColor = [0 0.45 0.74]; b3(2).FaceColor = [0.93 0.69 0.13]; b3(3).FaceColor = [0.85 0.33 0.1];
+ylabel('Avg Variance (Unit/Rxn)');
+title('3. Information Density (Efficiency: How "rich" is the model?)');
+xticklabels(T.Cluster); xtickangle(45); grid on;
 
 % Plot 3: Lost Reactions (NEW)
 nexttile;
