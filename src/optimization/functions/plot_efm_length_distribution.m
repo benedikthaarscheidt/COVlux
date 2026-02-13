@@ -1,5 +1,5 @@
 function plot_efm_length_distribution(E, saveDir, clusterName)
-% PLOT_EFM_LENGTH_DISTRIBUTION with saving capability
+
     
     % Calculate lengths
     efm_lengths = sum(abs(E) > 1e-9, 1);

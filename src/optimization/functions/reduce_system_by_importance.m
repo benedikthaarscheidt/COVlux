@@ -37,8 +37,7 @@ mean_abs = abs(mu_sorted);
 
         % --- FIX 1: Squared SNR for stronger separation ---
         snr_weights = (mean_abs ./ (std_vals + 1e-12));
-        % this reduces the QR error on the reduced system like crazy since we
-                only keep the informative reactions
+        
 
                     snr_weights(snr_weights < 1e-8) = 1e-8;
         snr_weights(snr_weights > 1000) = 1000;

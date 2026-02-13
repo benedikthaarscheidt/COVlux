@@ -8,17 +8,13 @@ function cluster_metrics = compute_and_save_cluster_metrics(resultsDir, clusterN
     cluster_metrics = struct();
     cluster_metrics.ClusterName = clusterName;
     
-    % --- 1. REDUCED SPACE METRICS (Data-mapped) ---
-    % We use E_final and mu_final to determine WHICH EFMs are kept.
-    % Target is E_final to count losses in the reduced space.
+    
     [num_lost, lost_names, final_efm_idx, revived_names] = ...
         compute_unique_reaction_loss(A_opt_QR, E_final, mu_final_reduced, E_final, rxn_names_reduced,false);
     
     cluster_metrics.UniqueRxnsLostCount = num_lost;
     
-    % --- 2. FULL SPACE METRICS (Projected) ---
-    % We use the SAME EFM selection (from E_final/mu_final).
-    % But we target E_original_full to count losses in the full model.
+    
     if ~isempty(E_original_full) && ~isempty(rxn_names_full)
         
         [num_lost_full, lost_names_full, pruned_efm_idx_full, revived_names_full] = ...
@@ -127,7 +123,7 @@ function metrics = compute_error_metrics(metrics, E_use, X_use, E_final, X_final
     m_full = size(X_use, 1);
     m_reduced = size(X_final, 1);
     
-    % --- 1. BASELINE FROBENIUS ERRORS (Already Present) ---
+    % --- 1. BASELINE FROBENIUS ERRORS ---
     
     % REDUCED SYSTEM ERROR (Fit to X_final)
     metrics.ReducedrelativeError = norm(X_recon_reduced - X_final, 'fro') / norm(X_final, 'fro');
@@ -154,11 +150,7 @@ function metrics = compute_error_metrics(metrics, E_use, X_use, E_final, X_final
     else
         metrics.FullsysRelErrorMeanNorm = NaN;
     end
-    
-    % --- 3. VARIANCE EXPLAINED (R^2-like Metric) 📊 ---
-    
-    % Note: Since X_use and X_final are covariance matrices, they are already
-    % "centered," so ||X||_F^2 is used as the total variance.
+  
     
     % Reduced System (R^2-like)
     norm_X_final_sq = norm(X_final, 'fro')^2;
@@ -198,12 +190,9 @@ function metrics = compute_error_metrics(metrics, E_use, X_use, E_final, X_final
         metrics.FullsysRelErrorSpectral = NaN;
     end
     
-    % --- 5. MAHALANOBIS DISTANCE RELATIVE ERROR (Advanced) 🔱 ---
     
-    % Only calculate for the full system where invertibility is more likely
-    % (or use the regularized/smoothed version of X_use if available)
     try
-        % X must be positive definite/invertible
+       
         X_inv_sqrt = inv(sqrtm(X_use)); 
         residual_weighted = X_inv_sqrt * (X_recon_full - X_use) * X_inv_sqrt;
         metrics.FullsysMahalanobisError = norm(residual_weighted, 'fro');
@@ -212,7 +201,7 @@ function metrics = compute_error_metrics(metrics, E_use, X_use, E_final, X_final
         metrics.FullsysMahalanobisError = NaN;
     end
     
-    % --- RECONSTRUCTION ANALYSIS (Original) ---
+    % --- RECONSTRUCTION ANALYSIS ---
     if reduce_colinearity
         metrics.ReconstructionPenalty = metrics.FullsysRelativeError - metrics.ReducedrelativeError;
         metrics.ReconstructionQuality = metrics.ReducedrelativeError / max(metrics.FullsysRelativeError, 1e-12);
@@ -221,7 +210,7 @@ function metrics = compute_error_metrics(metrics, E_use, X_use, E_final, X_final
         metrics.ReconstructionQuality = 1.0;
     end
     
-    % --- SCALE ANALYSIS (Original) ---
+    % --- SCALE ANALYSIS ---
     metrics.ReducedScaleRatio = norm(X_recon_reduced, 'fro') / norm(X_final, 'fro');
     metrics.FullScaleRatio = norm(X_recon_full, 'fro') / norm(X_use, 'fro');
     
@@ -426,8 +415,6 @@ end
 
 function save_full_space_analysis(resultsDir, clusterName, ...
     lost_names_full, pruned_efm_idx_full, selected_efm_idx_full, revived_names_full)
-% SAVE_FULL_SPACE_ANALYSIS - Save full space analysis files
-% Now includes saving of revived reactions.
     
     try
         % 1. Save full space lost reactions

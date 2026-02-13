@@ -27,7 +27,7 @@ function [A_psd, L_final] = solve_psd_final_qr_psd(E_sub, X,verbose, saveDir, cl
         end
         
         % Use robust PSD projection
-        % Note: Passing 1e-12 as default ratio to match signature if needed
+        
         A_psd = robust_psd_projection(A_opt, 1e-12, verbose);
         
         % Verify Cholesky works on the projected matrix
@@ -37,7 +37,7 @@ function [A_psd, L_final] = solve_psd_final_qr_psd(E_sub, X,verbose, saveDir, cl
             if verbose
                 fprintf('EMERGENCY: Cholesky still failing, using regularized identity\n');
             end
-            % Last resort - use regularized identity
+            
             A_psd = eye(size(A_opt)) * norm(X, 'fro') / norm(E_sub * E_sub', 'fro');
             [L, final_status] = chol(A_psd, 'lower');
         end
@@ -58,7 +58,7 @@ function [A_psd, L_final] = solve_psd_final_qr_psd(E_sub, X,verbose, saveDir, cl
         fprintf('After PSD mapping QR: Final error=%.6f, Cholesky_status=%d\n', error_val, status_final);
     end
 
-    % --- NEW: HISTOGRAM PLOTTING ---
+    % --- HISTOGRAM PLOTTING ---
     if ~isempty(saveDir)
         try
             fig = figure('Name', 'L_Matrix_Distribution', 'Color', 'w', 'Visible', 'off');

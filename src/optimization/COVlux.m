@@ -32,6 +32,7 @@ lambda_qr        = config.params.lambda_qr;
 max_iters        = config.params.max_iters;
 verbose          = config.params.verbose;
 div_by_reactions = config.params.div_by_reactions;
+mean_influence  = config.params.mean_influence  ;
 fprintf("DIV by reactions??: %d \n",div_by_reactions)
 second_moment_mat= config.params.second_moment_mat;
 
@@ -42,7 +43,7 @@ reduce_reactions_only = false;
 lambda_lasso          = NaN;
 lambda_ridge          = NaN;
 lambda_balance        = NaN; 
-mean_influence        = 0;
+
 
 % --- RESOLVE INPUT PATHS (Relative to Project Root) ---
 modelPath   = fullfile(projectRoot, config.paths.models_dir, config.model.model_file);
@@ -241,7 +242,7 @@ for k = 1:numel(files)
     
     % --- Sanitize Covariance ---
     % Enforce PSD and clean noise
-    [X_use, stats] = sanitize_covariance_matrix(X_use, 0, verbose, plotDir, clusterName);
+    [X_use, stats] = sanitize_covariance_matrix(X_use, 1e-5, verbose, plotDir, clusterName);
     %[X_use, scale_factor] = prepare_covariance_matrix(X_use,1000,verbose);
     
     % --- Load Mean Activity (mu) ---
@@ -284,28 +285,33 @@ for k = 1:numel(files)
     
     % --- RUN OPTIMIZATION (Local Function) ---
     protected_idx = [];
-    [A_opt_QR, E_red, L] = covlux_symmetric_pipeline_mean(E_final, X_final, mu_final, lambda_qr, lambda_l21, max_iters, mean_influence, protected_idx, plotDir, clusterName,verbose,div_by_reactions);
+    %[A_opt_QR, E_red, L] = covlux_symmetric_pipeline_mean(E_final, X_final, mu_final, lambda_qr, lambda_l21, max_iters, mean_influence, protected_idx, plotDir, clusterName,verbose,div_by_reactions);
+    %[A_opt_QR, E_red, L] = covlux_symmetric_pipeline_mean_lasso(E_final, X_final, mu_final, lambda_qr, lambda_l21, max_iters, mean_influence, protected_idx, plotDir, clusterName,verbose,div_by_reactions);
+    %[A_opt_QR, E_red, L, metrics]= solve_weighted_lasso_covariance(E_final, X_final, verbose, plotDir, clusterName);
+    [A_opt_QR, E_red, L, metrics]= covariance_selection(E_final, X_final, verbose, plotDir, clusterName,mean_influence,lambda_l21);
     tolerance = 1e-9; 
     
-    row_norms_final = sqrt(sum(A_opt_QR.^2, 2));
-    zero_rows_count = sum(row_norms_final < tolerance);
-    
-    col_norms_final = sqrt(sum(A_opt_QR.^2, 1));
-    zero_cols_count = sum(col_norms_final < tolerance);
-    
-    X_recon_full=E_original_full * A_opt_QR * E_original_full';
+    efm_norms_local = sqrt(sum(E_final.^2, 1));
+    efm_norms_local(efm_norms_local < 1e-12) = 1; % Avoid div-by-zero
+    E_norm_check = E_final ./ efm_norms_local;
 
-    X_recon=X_recon_full(iE, iE);
-    fprintf('  Reconstruction error: %.6f\n', norm(X_use-X_recon, 'fro') / norm(X_use, 'fro'));
-    fprintf('=== RECONSTRUCTION VALIDATION ===\n');
     
+    X_recon_full = E_norm_check * A_opt_QR * E_norm_check';
+
+    
+    recon_error = norm(X_final - X_recon_full, 'fro') / norm(X_final, 'fro');
+    
+    fprintf('  Reconstruction Error: %.6f (%.2f%%)\n', recon_error, recon_error * 100);
+    
+    fprintf("Smallest value in A: %f",min(A_opt_QR(:)));
     A_full = A_opt_QR;
-    % Get the indices of selected EFMs from the reduction
-    selected_efm_idx = find(sqrt(sum(A_opt_QR.^2, 2)) > 1e-9);
+    
+    variances = diag(A_full);
+    selected_efm_idx = find(variances > 1e-9);
    
-    X_recon_full = E_use * A_full * E_use';
-    X_recon_reduced = X_recon_full;  % Same when no reduction
-    % Save additional variables
+   
+    X_recon_reduced = X_recon_full;  
+    
     cluster_metrics = compute_and_save_cluster_metrics(...
         resultsDir, clusterName, ...
         E_use, X_use, E_final, X_final, A_opt_QR, P_full, P_efm, ...
@@ -368,13 +374,13 @@ function [A_final, E_reduced, L_final] = covlux_symmetric_pipeline_mean(E, X, mu
     if verbose, fprintf('  [Normalization] Scaling all EFMs to Unit Norm to prevent magnitude bias...\n'); end
     
     E_orig=E;
-    % Calculate the "Volume" (L2 norm) of each EFM column
+    
     efm_norms = sqrt(sum(E.^2, 1));
     
-    % Safety: Avoid division by zero for silent EFMs
+    
     efm_norms(efm_norms < 1e-12) = 1; 
     
-    % Create the Normalized E matrix (Solver sees this)
+    
     E = E ./ efm_norms;
     % ============================================================
     % PLOTTING BLOCK 1: Scale Analysis
@@ -408,7 +414,7 @@ function [A_final, E_reduced, L_final] = covlux_symmetric_pipeline_mean(E, X, mu
     A_opt = solve_QR_regularized_new(E, X, lambda_qr);
     A = A_opt;
     
-    % Pre-calculate "Volume" of EFMs for the ranking logic
+    
     E_reaction_norms = sum(E.^2, 1)'; 
     
     % ============================================================
@@ -450,7 +456,7 @@ function [A_final, E_reduced, L_final] = covlux_symmetric_pipeline_mean(E, X, mu
     history_k = [];
     history_r2 = [];
     history_score = [];
-    history_A = {}; % Store matrices to retrieve the correct one later
+    history_A = {}; 
     
     active_mask = true(s, 1);
     current_k = s;
@@ -459,13 +465,15 @@ function [A_final, E_reduced, L_final] = covlux_symmetric_pipeline_mean(E, X, mu
     
 
     for iter = 1:max_iters
-        current_variances = diag(A) .* E_reaction_norms;
+        %current_variances = diag(A) .* E_reaction_norms;
+
+        current_variances = sum(A,2) .* E_reaction_norms;
         if div_by_reactions
             
             reactions_per_efm = sum(abs(E) > 1e-6, 1)';
             ranking_scores = current_variances ./ (reactions_per_efm + 1e-6);
         else 
-            ranking_scores = current_variances,
+            ranking_scores = current_variances;
         end
         ranking_scores(~active_mask) = inf; 
         if ~isempty(protected_idx)
@@ -521,7 +529,7 @@ function [A_final, E_reduced, L_final] = covlux_symmetric_pipeline_mean(E, X, mu
         current_r2 = max(0, 1 - qr_fit_error^2);
         current_sparsity = 1 - (current_k / s);
         
-        % --- NEW: Calculate Biological Complexity (Active Reactions) ---
+        
         if current_k > 0
             active_efms = find(active_mask);
         
@@ -533,10 +541,10 @@ function [A_final, E_reduced, L_final] = covlux_symmetric_pipeline_mean(E, X, mu
             n_active_reactions = 0;
         end
         
-        % m_total: Complexity is the number of active reactions in X 
+        
         m_total = size(X,1); 
         
-        % k_params: The number of active EFMs
+        
         k_params = current_k; 
         n_reactions_lost=m_total - n_active_reactions;
         
@@ -552,7 +560,7 @@ function [A_final, E_reduced, L_final] = covlux_symmetric_pipeline_mean(E, X, mu
         sparsity_history(iter) = current_sparsity;
         iteration_numbers(iter) = iter;
         
-        history_k = [history_k; current_k];
+        history_k = [history_k; current_k]; 
         history_r2 = [history_r2; current_r2];
         history_score = [history_score; efficiency_score];
         history_A{end+1} = A; 
@@ -576,16 +584,15 @@ function [A_final, E_reduced, L_final] = covlux_symmetric_pipeline_mean(E, X, mu
     % ============================================================
     
     
-    % 1. Identify "Valid" Models: Those with R^2 > 10%
-    % This cuts off the asymptotic tail where Score -> Infinity but R2 -> 0
-    min_r2_threshold = 0.05; 
+    
+    min_r2_threshold = 0.1; 
     valid_mask = history_r2 > min_r2_threshold;
     
     if ~any(valid_mask)
         fprintf('  WARNING: No models met the R2 > %.2f threshold. Picking best available.\n', min_r2_threshold);
         [~, best_idx] = max(history_score);
     else
-        % 2. Find the Efficiency Peak ONLY within the valid region
+        
         valid_indices = find(valid_mask);
         valid_scores = history_score(valid_indices);
         [~, local_max_idx] = max(valid_scores);
@@ -729,4 +736,45 @@ function [A_final, E_reduced, L_final] = covlux_symmetric_pipeline_mean(E, X, mu
     final_error = norm(E * A_final * E' - X, 'fro') / norm(X, 'fro');
     fprintf("final error: %.f")
 
+end
+
+
+
+function [A_opt_QR, E_red, L] = covlux_symmetric_pipeline_mean_lasso(E, X, mu_efm, lambda_qr, lambda_l21, max_iters, mean_influence, protected_idx, plotDir, clusterName, verbose, div_by_reactions)
+
+
+    [m, s] = size(E);
+    
+    
+    if verbose, fprintf('  [Normalization] Scaling all EFMs to Unit Rays...\n'); end
+    
+    E_orig = E; 
+    
+    efm_norms = sqrt(sum(E.^2, 1));
+   
+    efm_norms(efm_norms < 1e-12) = 1; 
+    
+    
+    E_norm = E ./ efm_norms; 
+    
+    [A_final, E_reduced_raw, L_final_raw] = solve_weighted_lasso_covariance(E_orig, X, verbose, plotDir, clusterName);
+    
+    A_opt_QR = A_final;
+   
+    selected_idx = find(diag(A_opt_QR) > 1e-12);
+    
+    E_red = E_norm(:, selected_idx);
+ 
+    active_activities = sqrt(diag(A_opt_QR(selected_idx, selected_idx)));
+    L = active_activities; 
+    
+    X_recon = E_norm * A_opt_QR * E_norm';
+   
+    recon_error = norm(X - X_recon, 'fro') / norm(X, 'fro');
+    
+    fprintf('  Final Reconstruction Error: %.4f (%.2f%%)\n', recon_error, recon_error*100);
+    
+    
+    mag_ratio = sum(X_recon(:)) / sum(X(:));
+    fprintf('  Magnitude Check (Recon/Data): %.4f (Should be close to 1.0)\n', mag_ratio);
 end

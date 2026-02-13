@@ -44,7 +44,7 @@ clusteringBase = fullfile(projectRoot, config.paths.results_dir, 'Clustering');
 if use_conditions
     covDir = fullfile(clusteringBase, run_name_cluster, 'data_files', 'grouped_by_condition', 'MRAS_outputs');
     expressionDir = fullfile(clusteringBase, run_name_cluster, 'data_files', 'grouped_by_condition');
-    %expressionDir = '/Users/benedikthaarscheidt/M.Sc./master_thesis_second_moment/scripts/data_prep/clustered_data_v2/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/grouped_by_condition';
+    
 else
     covDir = fullfile(clusteringBase, run_name_cluster, 'data_files', 'MRAS_outputs');
     expressionDir = fullfile(clusteringBase, run_name_cluster, 'data_files');
@@ -89,7 +89,7 @@ clusteringBase = fullfile(projectRoot, config.paths.results_dir, 'Clustering');
 if use_conditions
     covInputDir = fullfile(clusteringBase, run_name_cluster, 'data_files', 'grouped_by_condition', 'MRAS_outputs');
     expressionDir = fullfile(clusteringBase, run_name_cluster, 'data_files', 'grouped_by_condition','mapped_for_benchmarking');
-    %expressionDir = '/Users/benedikthaarscheidt/M.Sc./master_thesis_second_moment/scripts/data_prep/clustered_data_v2/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/grouped_by_condition';
+    
 else
     covInputDir = fullfile(clusteringBase, run_name_cluster, 'data_files', 'MRAS_outputs');
     expressionDir = fullfile(clusteringBase, run_name_cluster, 'data_files','mapped_for_benchmarking');
@@ -130,28 +130,28 @@ for k = 1:length(files)
     expr_short_name = expr_name_parts{1};
     
     % --- A. GET COVLUX SURVIVORS ---
-    % Read lost reactions -> CORRECTED approach based on MASTER_COMPARISON_ULTIMATE
+    
     try
-        % Read file as lines instead of using import options
+        
         raw_lines = readlines(fullfile(files(k).folder, filename));
         
-        % Skip header if present (lines containing 'lost' or 'Var')
+        
         if length(raw_lines) > 0 && (contains(raw_lines(1), 'lost') || contains(raw_lines(1), 'Var'))
             raw_lines(1) = [];
         end
         
-        % Clean up and get unique lost reaction names
+       
         covlux_names = strtrim(raw_lines(strlength(raw_lines) > 0));
         
-        % Map to model indices
+        
         [~, lost_covlux] = ismember(covlux_names, model.rxns);
         lost_idx = lost_covlux(lost_covlux > 0);
         
-        % Get survivors (all reactions except lost ones)
+        
         survivors_cov = setdiff(1:n_rxns, lost_idx)';
         lost_cov_count = length(lost_idx);
         
-        % Create kept mask
+        
         kept_cov = false(n_rxns, 1);
         kept_cov(survivors_cov) = true;
         
@@ -166,25 +166,24 @@ for k = 1:length(files)
     RH = []; RL = [];
     
     if exist(exprFile, 'file')
-        % 1. Load the pre-mapped file (Columns are ALREADY b-numbers)
+        
         T = readtable(exprFile, 'VariableNamingRule', 'preserve');
         
-        % 2. Extract Data directly (No intersect needed)
-        % The MRAS script already handled operons and aliases
+        
+        
         gene_vals = mean(T{:, :}, 1, 'omitnan')';
         
-        % 3. Create Structure for getExpressionSets
+        
         valid_genes_struct = struct();
         valid_genes_struct.gene = T.Properties.VariableNames(:); % b-numbers
         valid_genes_struct.value = gene_vals(:);
         
-        % 4. Run Selection
-        % Now getting the correct ~4000 genes
+        
         [RH, RL] = getExpressionSets(model, valid_genes_struct);
         
     else
         fprintf('Warning: Mapped expression file not found for %s\n', short_name);
-        % Optional: Fallback to old behavior or skip
+        
     end
     
     % iMAT
@@ -209,7 +208,7 @@ for k = 1:length(files)
     [gap_fast, added_fast] = calculate_gap_and_patch(model, kept_fast, bio_idx);
     
     % --- D. VARIANCE ANALYSIS (On Fixed Models) ---
-    % Load Covariance Matrix for this cluster
+    
     
     if usesecondmoment
         covFile = fullfile(covDir, [cluster_full_name '_SecondMoment.csv']);
@@ -218,48 +217,69 @@ for k = 1:length(files)
     end 
     if ~exist(covFile, 'file'), covFile = fullfile(covDir, [short_name '_MRAS_COV.csv']); end
     
-    % Initialize vars
     var_cov = NaN; var_imat = NaN; var_fast = NaN;
-    avg_cov = NaN; avg_imat = NaN; avg_fast = NaN; % <--- NEW
-    
+    avg_cov = NaN; avg_imat = NaN; avg_fast = NaN;
+    coh_cov = NaN; coh_imat = NaN; coh_fast = NaN; % New: Coherence
+    conn_cov = NaN; conn_imat = NaN; conn_fast = NaN; % New: Connectivity
+
     if exist(covFile, 'file')
         try
             T_cv = readtable(covFile, 'ReadRowNames', true, 'PreserveVariableNames', true);
             X = table2array(T_cv);
             rxns_X = string(T_cv.Properties.RowNames);
             
-            % Map Model Rxns to X indices
+            
             [~, map_Model_to_X] = ismember(model.rxns, rxns_X);
             
-            % Total Variance in Data (Trace of X)
+           
             total_var = trace(X);
             
-            % Helper 1: Calculate RAW Sum of Variance for a mask
-            get_raw_sum = @(mask) sum(diag(X(map_Model_to_X(mask & map_Model_to_X>0), map_Model_to_X(mask & map_Model_to_X>0))));
+           
+            std_vec = sqrt(diag(X));
+            Corr_Matrix = X ./ (std_vec * std_vec');
+            Corr_Matrix(isnan(Corr_Matrix)) = 0; % Fix div-by-zero for silent rxns
             
-            % Helper 2: Calculate Percentage (Total Explained)
+            % --- 2. HELPERS ---
+            % Helper: Variance Sum (Diagonal)
+            get_raw_sum = @(mask) sum(diag(X(map_Model_to_X(mask & map_Model_to_X>0), map_Model_to_X(mask & map_Model_to_X>0))));
             calc_pct = @(raw_sum) (raw_sum / total_var) * 100;
+            
+            % Helper: Coherence (Mean absolute Correlation of kept sub-network)
+            % Measures "Network Density": Do the kept reactions actually talk to each other?
+            get_coherence = @(mask) mean(abs(Corr_Matrix(map_Model_to_X(mask & map_Model_to_X>0), map_Model_to_X(mask & map_Model_to_X>0))), 'all', 'omitnan');
+
+            % Helper: Connectivity (Fraction of nodes with at least one strong link r > 0.5)
+            % Measures "Network Fragmentation": Are reactions isolated or connected?
+            get_connectivity = @(mask) mean(any(abs(Corr_Matrix(map_Model_to_X(mask & map_Model_to_X>0), map_Model_to_X(mask & map_Model_to_X>0))) > 0.5, 2));
+
+            % --- 3. CALCULATE METRICS ---
             
             % 1. COVlux Fixed
             fixed_cov = kept_cov; fixed_cov(added_cov) = true;
             raw_cov = get_raw_sum(fixed_cov);
             var_cov = calc_pct(raw_cov); 
-            avg_cov = raw_cov / sum(fixed_cov); % <--- NEW: Raw Sum / Count
+            avg_cov = raw_cov / sum(fixed_cov); 
+            coh_cov = get_coherence(fixed_cov);     
+            conn_cov = get_connectivity(fixed_cov); 
             
             % 2. iMAT Fixed
             fixed_imat = kept_imat; fixed_imat(added_imat) = true;
             raw_imat = get_raw_sum(fixed_imat);
             var_imat = calc_pct(raw_imat);
-            avg_imat = raw_imat / sum(fixed_imat); % <--- NEW
+            avg_imat = raw_imat / sum(fixed_imat);
+            coh_imat = get_coherence(fixed_imat);    
+            conn_imat = get_connectivity(fixed_imat);
             
             % 3. Fastcore Fixed
             fixed_fast = kept_fast; fixed_fast(added_fast) = true;
             raw_fast = get_raw_sum(fixed_fast);
             var_fast = calc_pct(raw_fast);
-            avg_fast = raw_fast / sum(fixed_fast); % <--- NEW
-            
-        catch
-            % Covariance load failed
+            avg_fast = raw_fast / sum(fixed_fast);
+            coh_fast = get_coherence(fixed_fast);     
+            conn_fast = get_connectivity(fixed_fast); 
+           
+        catch ME
+            warning('Metric calculation failed for %s: %s', short_name, ME.message);
         end
     end
     
@@ -267,22 +287,43 @@ for k = 1:length(files)
     fprintf('%-20s | %-5d %-5d %-5d | %-5.1f %-5.1f %-5.1f | %-5d %-5d %-5d\n', ...
         short_name, gap_cov, gap_fast, gap_imat, var_cov, var_fast, var_imat, ...
         lost_cov_count, lost_fast_count, lost_imat_count);
+        
+    
+    if ~isnan(coh_cov)
+        fprintf('   > Coherence: COV=%.3f | iMAT=%.3f | FAST=%.3f\n', coh_cov, coh_imat, coh_fast);
+    end
 
     % Save to stats
-    Stats(k).AvgVar_COV = avg_cov;   % <--- NEW
-    Stats(k).AvgVar_FAST = avg_fast; % <--- NEW
-    Stats(k).AvgVar_iMAT = avg_imat; % <--- NEW
-    
     Stats(k).Cluster = string(short_name);
+    
+    % Gaps
     Stats(k).Gap_COV = gap_cov;
     Stats(k).Gap_FAST = gap_fast;
     Stats(k).Gap_iMAT = gap_imat;
+    
+    % Variance
     Stats(k).Var_COV = var_cov;
     Stats(k).Var_FAST = var_fast;
     Stats(k).Var_iMAT = var_imat;
+    
+    % Average Variance (Information Density)
+    Stats(k).AvgVar_COV = avg_cov;   
+    Stats(k).AvgVar_FAST = avg_fast; 
+    Stats(k).AvgVar_iMAT = avg_imat; 
+    
+    % Lost Counts
     Stats(k).Lost_COV = lost_cov_count;
     Stats(k).Lost_FAST = lost_fast_count;
     Stats(k).Lost_iMAT = lost_imat_count;
+    
+    % NEW: Network Coherence & Connectivity
+    Stats(k).Coherence_COV = coh_cov;
+    Stats(k).Coherence_FAST = coh_fast;
+    Stats(k).Coherence_iMAT = coh_imat;
+    
+    Stats(k).Conn_COV = conn_cov;
+    Stats(k).Conn_FAST = conn_fast;
+    Stats(k).Conn_iMAT = conn_imat;
 end
 
 %% 5. VISUALIZATION
@@ -290,7 +331,7 @@ outputPdfPath = fullfile(resultsDir, 'Functional_Gap_and_Variance.pdf');
 T = struct2table(Stats);
 
 fig = figure('Name', 'Gap vs Variance', 'Color', 'w', 'Position', [100 100 1200 1500]);
-t = tiledlayout(4, 1, 'Padding', 'compact');
+t = tiledlayout(5, 1, 'Padding', 'compact');
 
 % Plot 1: Functional Gap
 nexttile;
@@ -319,7 +360,14 @@ b3(1).FaceColor = [0 0.45 0.74]; b3(2).FaceColor = [0.93 0.69 0.13]; b3(3).FaceC
 ylabel('Avg Variance (Unit/Rxn)');
 title('3. Information Density (Efficiency: How "rich" is the model?)');
 xticklabels(T.Cluster); xtickangle(45); grid on;
-
+nexttile;
+bar_data_coh = [T.Coherence_COV, T.Coherence_FAST, T.Coherence_iMAT];
+b4 = bar(bar_data_coh, 'grouped');
+b4(1).FaceColor = [0 0.45 0.74]; b4(2).FaceColor = [0.93 0.69 0.13]; b4(3).FaceColor = [0.85 0.33 0.1];
+ylabel('Mean Correlation (|r|)');
+title('4. Network Coherence (Are the kept reactions actually connected?)');
+xticklabels(T.Cluster); xtickangle(45); grid on;
+legend({'COVlux', 'FASTCORE', 'iMAT'}, 'Location', 'best');
 % Plot 3: Lost Reactions (NEW)
 nexttile;
 bar_data_lost = [T.Lost_COV, T.Lost_FAST, T.Lost_iMAT];
@@ -363,7 +411,7 @@ function [gap_size, added_indices] = calculate_gap_and_patch(model, active_mask,
             gap_size = NaN; added_indices = [];
         else
             v_net = x(1:n) - x(n+1:end);
-            % Which previously INACTIVE reactions are now carrying flux?
+            
             flux_in_inactive = abs(v_net(inactive_idx));
             is_added = flux_in_inactive > 1e-5;
             

@@ -46,7 +46,7 @@ seurat_obj <- CreateSeuratObject(
   meta.data = final_metadata
 )
 
-# --- NEW: QC VIOLIN PLOTS (Before Filtering) ---
+# ---  QC VIOLIN PLOTS (Before Filtering) ---
 message("Generating QC Violin Plots...")
 p_vln <- VlnPlot(seurat_obj, features = c("nFeature_RNA", "nCount_RNA"), ncol = 2, pt.size = 0.1) 
 ggsave(file.path(plot_dir, "0_QC_ViolinPlots.png"), p_vln, width = 10, height = 6)
@@ -67,7 +67,7 @@ message("Normalizing & PCA...")
 # Normalize (Natural Log)
 seurat_obj <- NormalizeData(seurat_obj, normalization.method = "LogNormalize", scale.factor = 1e6, verbose = FALSE)
 
-# Convert to Log2 (Manual Adjustment)
+# Convert to Log2
 mat <- GetAssayData(seurat_obj, layer = "data") / log(2)
 seurat_obj <- SetAssayData(seurat_obj, layer = "data", new.data = mat)
 
@@ -78,7 +78,7 @@ seurat_obj <- ScaleData(seurat_obj)
 # Run PCA
 seurat_obj <- RunPCA(seurat_obj, features = VariableFeatures(seurat_obj), verbose = FALSE)
 
-# --- NEW: ELBOW PLOT ---
+# --- ELBOW PLOT ---
 message("Generating Elbow Plot...")
 p_elbow <- ElbowPlot(seurat_obj, ndims = 50)
 ggsave(file.path(plot_dir, "1_ElbowPlot.png"), p_elbow, width = 8, height = 6)

@@ -101,7 +101,7 @@ if (file.exists(config_file)) {
   }
   
 } else {
-  # Fallback to hardcoded config from first script
+  
   message("Config file not found. Using hardcoded configuration.")
   
   # Set default paths relative to project root
@@ -120,7 +120,7 @@ if (file.exists(config_file)) {
     use_conditions = TRUE  # Default to using conditions if available
   )
   
-  # Define input file sets (as in first script, but with relative paths)
+  # Define input file sets 
   config$file_sets <- list(
     list(
       id = "LB_1057",
@@ -169,21 +169,17 @@ for (file_set in config$file_sets) {
   message("... processing ", file_set$id, " (Type: ", file_set$type, ")")
   cat("\nProcessing:", file_set$id, "\n")
   
-  # --- CHANGE STARTS HERE ---
-  # WAS: cat("File path:", file_set$file_path, "\n")
-  # WAS: cat("File exists?", file.exists(file_set$file_path), "\n")
-  
   cat("File path:", file_set$expr_path, "\n") 
   cat("File exists?", file.exists(file_set$expr_path), "\n")
   cat("File path class:", class(file_set$expr_path), "\n")
   
-  # Check the vroom block as well
+  
   tryCatch({
-    # WAS: data <- vroom::vroom(file_set$file_path)
+    
     data <- vroom::vroom(file_set$expr_path) 
   }, error = function(e) {
     cat("Error for", file_set$id, ":", e$message, "\n")
-    # WAS: cat("Full file path:", normalizePath(file_set$file_path, ...
+   
     cat("Full file path:", normalizePath(file_set$expr_path, mustWork = FALSE), "\n")
   })
   # Initialize variables
@@ -214,7 +210,7 @@ for (file_set in config$file_sets) {
       mat <- assay(sce, 1)
     }
     
-    # 3. CRITICAL: CHECK FOR "FLAT" CELLS (The Bug You Found)
+    # 3. CHECK FOR "FLAT" CELLS
     # Check if genes within a single cell have identical non-zero values
     mat_sample <- head(as.matrix(mat), 100)
     row_variances <- apply(mat_sample, 1, function(x) var(x[x > 0]))
@@ -227,7 +223,7 @@ for (file_set in config$file_sets) {
            "or ensure a 'counts' layer exists containing Integers.")
     }
     
-    # 4. CHECK FOR DECIMALS (Un-Log if needed)
+    # 4. CHECK FOR DECIMALS 
     sample_vals <- head(as.vector(mat), 100)
     if (any(sample_vals %% 1 != 0, na.rm=TRUE)) {
       message("    -> Detected decimals. Rounding to nearest integer for Seurat...")
@@ -959,7 +955,7 @@ settings_text <- paste(
   "\nFinal clusters: ", paste(sort(clusters_to_keep), collapse=", ")
 )
 
-# Add clustering quality metrics to settings
+
 if (exists("quality_results")) {
   settings_text <- paste(
     settings_text,

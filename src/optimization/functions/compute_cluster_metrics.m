@@ -9,7 +9,7 @@ function cluster_metrics = compute_cluster_metrics(
 cluster_metrics.ClusterName = clusterName;
 
 % -- -1. REDUCED SPACE METRICS(Data - mapped)-- -
-    % We use E_final and mu_final to determine WHICH EFMs are kept.%
+   
         Target is E_final to count losses in the reduced space
             .[num_lost, lost_names, final_efm_idx, revived_names] =
     ... compute_unique_reaction_loss(A_opt_QR, E_final, mu_final_reduced,
@@ -129,7 +129,7 @@ function metrics = compute_error_metrics(metrics, E_use, X_use, E_final, X_final
     m_full = size(X_use, 1);
     m_reduced = size(X_final, 1);
 
-    % -- -1. BASELINE FROBENIUS ERRORS(Already Present)-- -
+    % -- -1. BASELINE FROBENIUS ERRORS(Alread)-- -
 
         % REDUCED SYSTEM ERROR(Fit to X_final) metrics.ReducedrelativeError =
         norm(X_recon_reduced - X_final, 'fro') / norm(X_final, 'fro');
@@ -159,10 +159,7 @@ function metrics = compute_error_metrics(metrics, E_use, X_use, E_final, X_final
 
         % -- -3. VARIANCE EXPLAINED(R ^ 2 - like Metric) 📊 -- -
 
-        % Note : Since X_use and X_final are covariance matrices,
-        they are already % "centered," so || X ||
-            _F ^ 2 is used as the total variance.
-
+       
                      % Reduced System(R ^ 2 - like)
                            norm_X_final_sq = norm(X_final, 'fro') ^ 2;
     if norm_X_final_sq
@@ -285,7 +282,7 @@ end
 
 function alignment = compute_matrix_alignment(E, X)
     try
-        % Correct syntax - compute E*E' first, then vectorize
+        %  compute E*E' first, then vectorize
         EET = E * E';
         vec_EET = EET(:);
         vec_X = X(:);

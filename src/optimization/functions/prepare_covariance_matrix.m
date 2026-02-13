@@ -11,7 +11,7 @@ function [X_clean, scale_factor] = prepare_covariance_matrix(X, target_max, verb
     % Ensure Symmetry first
     X = 0.5 * (X + X');
     
-    % --- 1. ANALYZE & CLIP RAW OUTLIERS (Do this FIRST) ---
+    % --- 1. ANALYZE & CLIP RAW OUTLIERS ---
     X_abs = abs(X(:));
     
     % Use 99th percentile for robust max
@@ -49,10 +49,7 @@ function [X_clean, scale_factor] = prepare_covariance_matrix(X, target_max, verb
     scale_factor = target_max / raw_robust_max;
     X_scaled = X * scale_factor;
     
-    % --- 3. FINAL PSD PROJECTION (The Fix) ---
-    % Now that we have manipulated the values, we MUST repair the eigenvalues.
-    % Any clipping or scaling artifacts are fixed here.
-    
+    % --- 3. FINAL PSD PROJECTION ---
     X_scaled = 0.5 * (X_scaled + X_scaled'); % Ensure symmetry again
     
     [V, D] = eig(X_scaled);
@@ -64,7 +61,7 @@ function [X_clean, scale_factor] = prepare_covariance_matrix(X, target_max, verb
             fprintf('  ⚠️ Matrix became indefinite after clipping (Min Eig: %.2e). Projecting to PSD...\n', min_eig);
         end
         
-        % Kill negative eigenvalues
+        % clip negative eigenvalues
         d_vals(d_vals < 0) = 0;
         
         % Reconstruct

@@ -20,7 +20,7 @@ met_indices = find(model_ir.S(:, 2219) ~= 0);
 coefficients = full(model_ir.S(met_indices, 2219));
 met_ids = model_ir.mets(met_indices);
 
-% 3. Try to get the descriptive names if they exist in your model
+% 3. Try to get the descriptive names if they exist in model
 if isfield(model_ir, 'metNames')
     met_names = model_ir.metNames(met_indices);
 else
@@ -281,7 +281,7 @@ if isempty(pool), pool = parpool('local', nThreads); end
 
 %% 5) Checkpoint / Resume (timed saves only)
 CHECKPOINT_ENABLE  = true;
-AUTOSAVE_SEC       = 15*60;                      % save every 30 minutes
+AUTOSAVE_SEC       = 15*60;                      % save every 15 minutes
 CHECKPOINT_FILE    = fullfile(pwd,'efm_checkpoint.mat');
 
 % Optional: resume from an existing checkpoint file
@@ -331,7 +331,7 @@ for k_idx = 1:length(target_indices)
     localTemplate.ub(n+i) = 1;
     
     % --- Constraint 2: Force Tiny Flux (Avoid infeasibility on trace elements) ---
-    localTemplate.lb(i) = 1e-4;   % Using 1e-4 instead of 1.0!
+    localTemplate.lb(i) = 1e-4;   % Using 1e-4 instead of 1.0 (which was used for biomass EFMs)
     
     accepted_this_anchor = 0;
     for attempt = 1:maxSeedAttempts
@@ -498,11 +498,11 @@ for k_idx = 1:length(target_indices)
             end
         end % for k
 
-        % Stop trying more attempts for this anchor if we hit the cap
+        
         if accepted_this_anchor >= MAX_PER_ANCHOR || accepted_this_anchor>= MIN_PER_ANCHOR
             break;
         end
-        % otherwise, try another attempt to fish for more diverse supports
+       
     end % for attempt
 end 
 
@@ -550,7 +550,7 @@ else
 end
 
 
-%%
+
 
 %% Merge Two EFM Datasets
 % 1. Define filenames
@@ -585,9 +585,6 @@ rowNames = D1.rowNames;
 rxnNames = D1.rxnNames;
 model_ir = D1.model_ir;
 
-% 5. Regenerate Table Headers (Critical step)
-% We cannot just merge the tables because both have "EFM_1". 
-% We must rename them sequentially from 1 to Total.
 totalEFMs = size(EFM_matrix, 2);
 fprintf('Total merged EFMs: %d\n', totalEFMs);
 
@@ -682,13 +679,7 @@ function ok = nullity1_ok(S, supp)
 end
 function [ok, supp_out, v_full] = prune_nullity_by_single_drop( ...
             S, ub_eff, supp0, eps_flux, tol_balance, badPartner, anchor)
-% Try removing ONE reaction (prefer not dropping 'anchor'):
-%   For each j in supp0:
-%     - trial = supp0 \ {j}
-%     - check bad pairs
-%     - LP: S(:,trial)*v=0, eps<=v<=U
-%     - if feasible, re-check nullity(trial)==1 and FULL Sv<=tol
-%     - accept if ok (anchor must remain)
+
     ok = false; supp_out = []; v_full = [];
 
     if numel(supp0) <= 1, return; end
@@ -817,7 +808,7 @@ function [supp_out, v_new] = cancel_twins(supp_in, v, badPartner, S, eps, tol)
         end
     end
 
-    % support = thresholded OR winner-forced
+   
     supp_out = unique([ find(v_new >= eps - tol); find(keepWinner) ]);
 end
 
@@ -885,7 +876,7 @@ function save_checkpoint_atomic(targetFile, model_sig)
     try rng_state = rng; catch, rng_state = []; end 
     model_sig = model_sig; 
 
-    % Variables to persist (extend if you add new evolving state)
+    % Variables to persist 
     varNames = { ...
         'EFM_supps','EFM_vecs','EFM_anchor','accepted_supps', ...
         'covered','skipped','linModel', ...
@@ -905,10 +896,10 @@ function save_checkpoint_atomic(targetFile, model_sig)
     end
 
     tmp = [targetFile, '.tmp'];
-    save(tmp, '-struct', 'Sstruct', '-v7.3');   % big cells → v7.3 (HDF5)
-    movefile(tmp, targetFile, 'f');             % atomic rename on same volume
-    fprintf('[checkpoint] %s\n', targetFile);
-end
+    save(tmp, '-struct', 'Sstruct', '-v7.3');   
+    movefile(tmp, targetFile, 'f');             
+    fprintf('[checkpoint] %s\n', targetFile)
+en
 
 function load_checkpoint_state(fname)
 % Load all fields from checkpoint into caller workspace.

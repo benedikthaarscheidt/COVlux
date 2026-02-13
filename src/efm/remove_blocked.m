@@ -262,31 +262,23 @@ fprintf('   Total reactions: %d\n', numel(pruned_ir.rxns));
 %% 7) VERIFICATION: DOES IT GROW?
 fprintf('\n7) VERIFYING MODEL FUNCTIONALITY...\n');
 
-% A. Setup Permissive Media (Irreversible Compatible)
-% Since this is now an irreversible model (pruned_ir), we use lb=0, ub=1000
+% Setup Permissive Media (Irreversible Compatible)
+% Since this is now an irreversible model (pruned_ir), use lb=0, ub=1000
 uptake_rxns = contains(pruned_ir.rxns, 'EX_');
 pruned_ir.lb(uptake_rxns) = 0;    
 pruned_ir.ub(uptake_rxns) = 1000; % Open all uptake/secretion
 
-% B. Enforce Uptake of Essentials (Glucose + Oxygen)
-% Check for standard naming or _b suffix
-glc_up = contains(pruned_ir.rxns, 'EX_glc__D_e');
-o2_up  = contains(pruned_ir.rxns, 'EX_o2_e');
 
-% If distinct uptake reactions (irreversible) exist, ensure they are open
-if any(glc_up), pruned_ir.ub(glc_up) = 1000; end
-if any(o2_up),  pruned_ir.ub(o2_up)  = 1000; end
-
-% C. Run FBA
+%  Run FBA
 model_test = changeObjective(pruned_ir, coreBiomass);
 sol = optimizeCbModel(model_test, 'max');
 
 if sol.f > 1e-6
     fprintf('   [SUCCESS] The pruned model grows! Growth Rate: %.4f\n', sol.f);
-    fprintf('   This model is ready for your Analysis Pipeline.\n');
+    
 else
     fprintf('   [FAILURE] The pruned model DOES NOT grow (Rate: %.4e).\n', sol.f);
-    warning('Do not use this model. Check if essential reactions were pruned in Step 5.');
+    
 end
 
 function [model, nEX, nUpt] = openMediumVerbose(model)

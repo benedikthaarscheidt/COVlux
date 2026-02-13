@@ -48,11 +48,10 @@ function [X_combined, rxns_common, stats, lambda_balance] = align_and_combine_C_
         C_aligned = C_matrix(idx_C, idx_C);
         M_aligned = M_matrix(idx_M, idx_M);
         
-        % 5. THE EQUALIZER (Calculate Lambda)
+       
         energy_C = norm(C_aligned, 'fro');
         energy_M = norm(M_aligned, 'fro');
         
-        % (Your logic override was technically here, keeping it as written)
         if energy_M > 1e-12
             lambda_balance= energy_C / energy_M;
         else
@@ -67,7 +66,7 @@ function [X_combined, rxns_common, stats, lambda_balance] = align_and_combine_C_
             fprintf('  [Balancing] Applied Weight (lambda): %.2e\n', lambda_balance);
         end
         
-        % 6. COMBINE (Second Moment)
+        % 6. COMBINE (non centered Second Moment)
         X_combined = C_aligned + (lambda_balance * M_aligned);
         
 

@@ -5,7 +5,6 @@
 # -------------------------------
 # 1) SETUP & CONFIG
 # -------------------------------
-# Note: Libraries are loaded here so they are available when sourced
 library(readr)
 library(Matrix)
 library(dplyr)

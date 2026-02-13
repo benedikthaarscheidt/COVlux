@@ -11,11 +11,11 @@
 % =========================================================================
 
 % --- ROBUST PROJECT ROOT FINDER ---
-% Priority 1: Check if we are ALREADY in the project root (Current Folder)
+
 if exist(fullfile(pwd, 'config', 'config.json'), 'file')
     projectRoot = pwd;
     fprintf('Project Root Detected (Current Dir): %s\n', projectRoot);
-% Priority 2: Search upwards from where the script is located
+
 else
     currentSearchPath = fileparts(mfilename('fullpath'));
     projectRoot = '';
@@ -26,14 +26,14 @@ else
             fprintf('Project Root Detected (Relative to Script): %s\n', projectRoot);
             break;
         end
-        % Move up one level
+       
         newPath = fileparts(currentSearchPath);
         if strcmp(newPath, currentSearchPath), break; end % Hit drive root
         currentSearchPath = newPath;
     end
 end
 
-% Priority 3: Crash if still not found
+
 if isempty(projectRoot)
     error(['Could not locate "config/config.json".\n' ...
            'Please run this script from the project root folder.']);
@@ -44,16 +44,15 @@ configFile = fullfile(projectRoot, 'config', 'config.json');
 config = jsondecode(fileread(configFile));
 
 %% 1. PARAMETERS & PATHS
-% Extract relevant params
+
 run_name_cluster = config.params.input_clustering_folder;
 use_conditions   = isfield(config.params, 'use_conditions') && config.params.use_conditions;
 targetBiomassName = 'BIOMASS_Ec_iML1515_WT_75p37M';
 
-% --- DEFINE PATHS (Dynamic) ---
-% 1. Model Path
+
 modelPath = fullfile(projectRoot, config.paths.models_dir, config.model.model_file);
 
-% 2. Results Base Directory (Where COVLUX outputs live)
+
 if config.params.use_big_basis
     covluxBase = fullfile(projectRoot, config.paths.results_dir, 'COVlux_cov_bigbasis');
 else
@@ -76,7 +75,7 @@ clusteringBase = fullfile(projectRoot, config.paths.results_dir, 'Clustering');
 if use_conditions
     covInputDir = fullfile(clusteringBase, run_name_cluster, 'data_files', 'grouped_by_condition', 'MRAS_outputs');
     expressionDir = fullfile(clusteringBase, run_name_cluster, 'data_files', 'grouped_by_condition','mapped_for_benchmarking');
-    %expressionDir = '/Users/benedikthaarscheidt/M.Sc./master_thesis_second_moment/scripts/data_prep/clustered_data_v2/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/grouped_by_condition';
+    
 else
     covInputDir = fullfile(clusteringBase, run_name_cluster, 'data_files', 'MRAS_outputs');
     expressionDir = fullfile(clusteringBase, run_name_cluster, 'data_files','mapped_for_benchmarking');
@@ -108,7 +107,7 @@ model_test = changeObjective(model, targetBiomassName);
 sol = optimizeCbModel(model_test, 'max');
 if sol.f > 1e-6
     fprintf('   [SUCCESS] The pruned model grows! Growth Rate: %.4f\n', sol.f);
-    fprintf('   This model is ready for your Analysis Pipeline.\n');
+    
 else
     fprintf('   [FAILURE] The pruned model DOES NOT grow (Rate: %.4e).\n', sol.f);
     warning('Do not use this model. Check if essential reactions were pruned in Step 5.');
@@ -192,8 +191,6 @@ for k = 1:length(files)
         T = readtable(exprFile, 'VariableNamingRule', 'preserve');
         
         % 2. Extract Data
-        % Since the file columns match model.genes perfectly, we don't need intersect/mapping
-        % But we check just to be safe
         file_genes = T.Properties.VariableNames;
         gene_vals  = mean(T{:, :}, 1, 'omitnan')'; % 1xGenes vector
         
@@ -203,12 +200,8 @@ for k = 1:length(files)
         valid_genes_struct.value = gene_vals(:);
         
         % 4. Run Selection
-        % Now getExpressionSets will see 100% match rate with the model
         [RH_indices, RL_indices] = getExpressionSets(model, valid_genes_struct);
         current_RL_set = RL_indices;
-        
-        % Debug
-        % fprintf('Loaded Mapped Data. RH Size: %d (Target: ~369)\n', length(RH_indices));
     else
         warning('Mapped file not found: %s. Please re-run MRAS script.', exprFile);
     end
@@ -239,7 +232,7 @@ for k = 1:length(files)
         
         if ~ismember(bio_idx, curr_survivors_idx)
            
-            % Optionally: Force keep it
+           
             curr_survivors_idx = union(curr_survivors_idx, bio_idx);
             lost_indices = setdiff(1:n_rxns_orig, curr_survivors_idx);
         end
@@ -462,7 +455,7 @@ for k = 1:length(files)
 end
 writetable(struct2table(stats_out), fullfile(resultsDir, 'FULL_METHOD_COMPARISON_WITH_DUAL_CONN.csv'));
 fprintf('\nDone. Saved to FULL_METHOD_COMPARISON_WITH_DUAL_CONN.csv\n');
-%% 7. PROFESSOR SUMMARY REPORT
+
 T_results = struct2table(stats_out);
 T_results.Failed = T_results.Biomass < 1e-6; 
 summary = grpstats(T_results, 'Method', {'mean', 'std', 'sum'}, ...
@@ -475,9 +468,9 @@ prof_report.Avg_Core_MTA = summary.mean_MTA_Core_Pct;
 prof_report.Avg_Connectivity_LCC = summary.mean_LCC_Pct;
 prof_report.Avg_Robustness_AlgConn = summary.mean_Alg_Connectivity;
 prof_report.Avg_Falsepositives = summary.mean_Falsepositives;
-fprintf('\n\n=== SUMMARY REPORT FOR PROFESSOR ===\n');
+fprintf('\n\n=== SUMMARY REPORT ===\n');
 disp(prof_report);
-writetable(prof_report, fullfile(resultsDir, 'PROFESSOR_SUMMARY_REPORT.csv'));
+writetable(prof_report, fullfile(resultsDir, 'SUMMARY_REPORT.csv'));
 %% 8. VISUALIZATION (ALL 10 FIGURES) - UPDATED
 fprintf('\n=== Generating Visualization Plots ===\n');
 T_viz = struct2table(stats_out);
@@ -514,7 +507,7 @@ colors = [
     0.9290 0.6940 0.1250;   % FASTCORE (Yellow)
     0.8500 0.3250 0.0980    % iMAT     (Red)
 ];
-methods = unique(T_viz.Method); % Usually: {'COVLUX', 'FASTCORE', 'iMAT'}
+methods = unique(T_viz.Method); 
 % --- FIGURE 1: TOPOLOGY BOXPLOTS ---
 f1 = figure('Position', [100, 100, 1200, 800], 'Name', 'Topology Analysis', 'Color', 'w', 'Visible', 'off');
 t = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
@@ -656,10 +649,6 @@ for m = 1:length(methods)
     avg_del = round(mean(T_viz.LostCount(strcmp(T_viz.Method, curr_method))));
     legend_labels{m} = sprintf('%s (Del: ~%d)', curr_method, avg_del);
 end
-% Note: categorical sorts alphabetically: COVLUX, FASTCORE, iMAT. 
-% Colors are set: Blue, Yellow, Red. 
-% We must ensure legend labels match this order. 
-% Since 'methods' comes from unique(), it usually sorts alphabetically, so it matches.
 % 1. AA Raw
 nexttile; 
 boxchart(categorical(T_viz.Method), T_viz.AA_Synthesis_Pct, 'GroupByColor', categorical(T_viz.Method)); 
@@ -680,7 +669,7 @@ lg = legend(legend_labels, 'Orientation', 'horizontal'); lg.Layout.Tile = 'north
 title(t10, 'Fig 10: Raw Functional Metrics (Ref: Deletion Counts)');
 saveas(f10, fullfile(resultsDir, 'Fig10_Raw_Metrics_With_Deletion_Counts.png'));
 fprintf('All 10 Figures saved to %s\n', resultsDir);
-%% 9. CORRELATION ANALYSIS (OVERLAID PDF)
+%% 9. CORRELATION ANALYSIS 
 fprintf('=== Generating Correlation PDF Report (Overlaid) ===\n');
 metrics_list = {'Biomass', 'LCC_Pct', 'Alg_Connectivity', 'AA_Synthesis_Pct', 'MTA_Core_Pct', 'Falsepositives', 'FragRatio', 'Eff_Del_AA'};
 metric_names_clean = {'Biomass', 'LCC (%)', 'Algebraic Connectivity', 'AA Yield (%)', 'MTA Yield (%)', 'False Positives', 'Fragmentation', 'Del. Efficiency (AA/Del)'};
@@ -738,7 +727,7 @@ function [RH_indices, RL_indices] = getExpressionSets(model, geneExpression)
     % Output: RH_indices (high expression), RL_indices (low expression)
     % Only includes reactions with GPR rules
     
-    % Use the built-in function
+   
     [rxnExpression, ~] = mapExpressionToReactions(model, geneExpression);
     
     % Find reactions with GPR rules (expression > -1)

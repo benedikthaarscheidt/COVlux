@@ -218,12 +218,12 @@ for f = 1:numel(files)
                     matchedMask(idx) = true;
                     found_any = true;
                     
-                    % [DEBUG] Print the first success
+                    
                     if matched_count == 0
                         fprintf('       [DEBUG SUCCESS] Mapped "%s" (from "%s") -> Model Gene Index %d\n', tok, dName, idx);
                     end
                 else
-                    % [DEBUG] Print the first few failures
+                    
                     if k < 5
                          fprintf('       [DEBUG FAIL] Token "%s" (from "%s") not found in map.\n', tok, dName);
                     end
@@ -252,7 +252,7 @@ for f = 1:numel(files)
         end
     end
     
-    % Verify we actually got data
+
     if sum(Gmat(:)) == 0
         warning('!!! OUTPUT MATRIX IS ALL ZEROS. NO GENES MATCHED !!!');
         fprintf('       Diagnostic: Checked %d input columns against %d model genes.\n', numel(uniqNames), geneIndexMap.Count);
@@ -319,10 +319,7 @@ for f = 1:numel(files)
         fprintf("There is a need for clamping before the optimisation!!!")
     end 
 
-    
-    % ---------------------------------------------------------------------
-    % [ADDED] CHECK FOR NaNs BEFORE SAVING
-    % ---------------------------------------------------------------------
+   
     nan_mras = sum(isnan(X_gpr_only), 'all');
     nan_cov  = sum(isnan(second_moment_matrix), 'all');
     

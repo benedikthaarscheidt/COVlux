@@ -8,7 +8,7 @@
     "params": {
         "snr_threshold": 5,
         "flux_noise_floor": 1e-9,
-        "lambda_l21": 0.5,
+        "lambda_l21": 75,
         "lambda_qr": 1e-7,
         "max_iters": 100,
         "use_big_basis": true,
@@ -25,7 +25,8 @@
         "project_name":"GSE217715_D1_lib1",
         "div_by_reactions":true,
         "second_moment_mat":true,
-        "use_smart_mapping":true
+        "use_smart_mapping":true,
+        "mean_influence" : 0.5
 
     },
     "clustering": {
@@ -37,6 +38,9 @@
             }
         ]
     },
+
+
+    
 
     "model": {
         "name": "E_coli",

@@ -15,13 +15,13 @@ S        = model_ir.S;
 rxnNames = model_ir.rxns;
 [m,n]    = size(S);
 
-%% 2) Load existing EFMs PROPERLY (based on working script)
+%% 2) Load existing EFMs PROPERLY 
 efmMatPath1 = '/Users/benedikthaarscheidt/M.Sc./master_thesis/efms_matrix_iML1515_pruned_permissive_biomassrm_loopless_v5_higher_cover.mat';
 efmMatPath2 = '/Users/benedikthaarscheidt/M.Sc./master_thesis/scripts/EFM/efms_matrix_iML1515_pruned_permissive_biomassrm_loopless_v5.mat';
 
 fprintf('Loading EFMs using proven method...\n');
 
-% Load both files exactly as in working script
+% Load both files
 S1 = load(efmMatPath1, 'EFM_matrix', 'rxnNames');
 S2 = load(efmMatPath2, 'EFM_matrix', 'rxnNames');
 
