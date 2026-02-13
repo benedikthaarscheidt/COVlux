@@ -8,3 +8,5 @@
 # --- Project Data & Outputs ---
 data/
 results/
+src/efm/efm_archive
+src/archive
