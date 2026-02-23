@@ -7,7 +7,7 @@
 currentScriptPath = fileparts(mfilename('fullpath'));
 projectRoot       = fileparts(fileparts(currentScriptPath)); % src / mras -> src -> root
 configFile = fullfile(projectRoot, 'config', 'config.json');
-second_moment_mat= config.params.second_moment_mat;
+
 
 if ~isfile(configFile)
     error('Config file not found: %s', configFile);
@@ -22,7 +22,7 @@ modelPath = fullfile(projectRoot, config.paths.models_dir, config.model.model_fi
 % Determine Input Directory (dataDir) based on config
 clustering_base = fullfile(projectRoot, config.paths.results_dir, 'Clustering');
 run_name        = config.params.input_clustering_folder;
-
+second_moment_mat = config.params.second_moment_mat;
 if isfield(config.params, 'use_conditions') && config.params.use_conditions
     dataDir = fullfile(clustering_base, run_name, 'data_files', 'grouped_by_condition');
     if ~exist(dataDir, 'dir')

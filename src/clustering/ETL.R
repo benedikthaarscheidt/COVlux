@@ -151,26 +151,38 @@ for (file_set in config$file_sets) {
   
   # --- CONDITION LOGIC ---
   if (config$use_conditions) {
-    # 1. Start with Label/ID
-    conds <- rep(if(!is.null(file_set$condition_label)) file_set$condition_label else file_set$id, nrow(expr_raw))
+    # Default: Use the specific label from config OR the dataset ID
+    default_label <- if(!is.null(file_set$condition_label)) file_set$condition_label else file_set$id
+    conditions <- rep(default_label, nrow(expr_raw))
     
-    # 2. Parse external file if valid
+    # 2. Parse external file if it exists and is valid
     if (!is.null(file_set$cell_index_path) && file.exists(file_set$cell_index_path)) {
       tryCatch({
+        # Read the full index file
         meta_raw <- read_csv(file_set$cell_index_path, col_names = FALSE, show_col_types = FALSE)
+        
+        # Look for the column containing the library/condition identifiers
         for(i in seq_along(meta_raw)) {
+          # Check if the column starts with a known prefix like 'Lib'
           if(any(grepl("^Lib", as.character(meta_raw[[i]][1:min(10, nrow(meta_raw))])))) {
             raw_str <- as.character(meta_raw[[i]])
+            
+            # Extract the unique condition ID (usually the text after the last underscore)
+            # Example: "Batch1_WildType" -> "WildType"
             parsed <- sub(".*_([^_]+)$", "\\1", raw_str)
-            if(length(parsed) == nrow(expr_raw)) conds <- parsed
-            break
+            
+            # CRITICAL: Only apply if the length matches the number of cells in the expression matrix
+            if(length(parsed) == nrow(expr_raw)) {
+              conditions <- parsed
+              message(sprintf("    [Prep] Mapped %d granular conditions for %s", length(unique(conditions)), file_set$id))
+            }
+            break # Exit loop once the correct column is found
           }
         }
-      }, error = function(e) warning("Condition parsing failed."))
+      }, error = function(e) warning(sprintf("    [Prep] Condition parsing failed for %s", file_set$id)))
     }
-    conditions <- conds
   } else {
-    # Flag FALSE: Use NA to keep structure identical
+    # If conditions are disabled, fill with NA to keep metadata structure consistent
     conditions <- rep(NA, nrow(expr_raw))
   }
   

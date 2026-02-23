@@ -516,7 +516,8 @@ nexttile; boxchart(categorical(T_viz.Method), T_viz.LCC_Pct, 'GroupByColor', cat
 nexttile; boxchart(categorical(T_viz.Method), T_viz.FragRatio, 'GroupByColor', categorical(T_viz.Method)); colororder(colors); ylabel('Fragmentation Ratio'); title('Deletion Modularity (Lower=Better)'); grid on;
 nexttile; boxchart(categorical(T_viz.Method), T_viz.Lost_LargestComponentPct, 'GroupByColor', categorical(T_viz.Method)); colororder(colors); ylabel('Lost Chunk Size %'); title('Chunk Size'); grid on;
 title(t, 'Fig 1: Topological Analysis');
-saveas(f1, fullfile(resultsDir, 'Fig1_Topology_Boxplots.png'));
+plotsDir=fullfile(resultsDir,"plots");
+saveas(f1, fullfile(plotsDir, 'Fig1_Topology_Boxplots.png'));
 % --- FIGURE 2: METRICS VS DELETION SIZE (SCATTER) ---
 f2 = figure('Position', [150, 150, 1400, 900], 'Name', 'Metrics vs Deletion Size', 'Color', 'w', 'Visible', 'off');
 t2 = tiledlayout(2, 3, 'TileSpacing', 'compact', 'Padding', 'compact');
@@ -528,7 +529,7 @@ for i = 1:length(metrics_to_plot)
 end
 lg = legend(methods, 'Orientation', 'horizontal'); lg.Layout.Tile = 'north';
 title(t2, 'Fig 2: Impact of Deletion Magnitude');
-saveas(f2, fullfile(resultsDir, 'Fig2_Metrics_vs_DeletionSize.png'));
+saveas(f2, fullfile(plotsDir, 'Fig2_Metrics_vs_DeletionSize.png'));
 % --- FIGURE 3: MODULARITY MECHANICS ---
 f3 = figure('Position', [150, 150, 1400, 600], 'Name', 'Modularity vs Deletion Size', 'Color', 'w', 'Visible', 'off');
 t3 = tiledlayout(1, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
@@ -559,7 +560,7 @@ for i = 1:length(all_metrics)
 end
 lg = legend(methods, 'Orientation', 'horizontal'); lg.Layout.Tile = 'north';
 title(t4, 'Fig 4: Comprehensive Metrics vs Deletion');
-saveas(f4, fullfile(resultsDir, 'Fig4_AllMetrics_vs_Deletion.png'));
+saveas(f4, fullfile(plotsDir, 'Fig4_AllMetrics_vs_Deletion.png'));
 % --- FIGURE 5: KEPT EFFICIENCY (Metric / Kept) ---
 f5 = figure('Position', [100, 100, 1200, 800], 'Name', 'Kept Efficiency', 'Color', 'w', 'Visible', 'off');
 t5 = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
@@ -568,7 +569,7 @@ nexttile; boxchart(categorical(T_viz.Method), T_viz.Eff_Kept_AA, 'GroupByColor',
 nexttile; boxchart(categorical(T_viz.Method), T_viz.Eff_Kept_MTA, 'GroupByColor', categorical(T_viz.Method)); colororder(colors); ylabel('MTA / Kept'); title('Core Density'); grid on;
 nexttile; boxchart(categorical(T_viz.Method), T_viz.FragRatio, 'GroupByColor', categorical(T_viz.Method)); colororder(colors); ylabel('Fragmentation Ratio'); title('Disorder (Reference)'); grid on;
 title(t5, 'Fig 5: KEPT Efficiency (Function per Retained Unit)');
-saveas(f5, fullfile(resultsDir, 'Fig5_Kept_Efficiency_Boxplots.png'));
+saveas(f5, fullfile(plotsDir, 'Fig5_Kept_Efficiency_Boxplots.png'));
 % --- FIGURE 6: DELETION EFFICIENCY (Metric / Deleted) ---
 f6 = figure('Position', [100, 100, 1200, 800], 'Name', 'Deletion Ratios', 'Color', 'w', 'Visible', 'off');
 t6 = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
@@ -577,7 +578,7 @@ nexttile; boxchart(categorical(T_viz.Method), T_viz.Eff_Del_AA, 'GroupByColor', 
 nexttile; boxchart(categorical(T_viz.Method), T_viz.Eff_Del_MTA, 'GroupByColor', categorical(T_viz.Method)); colororder(colors); ylabel('MTA Yield / Deleted'); title('Core Retention vs Pruning'); grid on;
 nexttile; boxchart(categorical(T_viz.Method), T_viz.Eff_Del_Mod, 'GroupByColor', categorical(T_viz.Method)); colororder(colors); ylabel('Fragmentation / Deleted'); title('Disorder per Deletion'); grid on;
 title(t6, 'Fig 6: DELETION Ratios (Function per Pruned Unit)');
-saveas(f6, fullfile(resultsDir, 'Fig6_Deletion_Ratios_Boxplots.png'));
+saveas(f6, fullfile(plotsDir, 'Fig6_Deletion_Ratios_Boxplots.png'));
 % --- FIGURE 7: DELETION SCALING ---
 f7 = figure('Position', [100, 100, 1200, 800], 'Name', 'Deletion Scaling', 'Color', 'w', 'Visible', 'off');
 t7 = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
@@ -603,7 +604,7 @@ end
 xlabel('Deleted Reactions'); ylabel('Fragmentation / Deleted'); title('Disorder/Pruning Scaling'); grid on;
 lg = legend(methods, 'Orientation', 'horizontal'); lg.Layout.Tile = 'north';
 title(t7, 'Fig 7: Scaling of Deletion Efficiency');
-saveas(f7, fullfile(resultsDir, 'Fig7_Deletion_Scaling.png'));
+saveas(f7, fullfile(plotsDir, 'Fig7_Deletion_Scaling.png'));
 % --- FIGURE 8: KEPT EFFICIENCY SCALING ---
 f8 = figure('Position', [100, 100, 1200, 800], 'Name', 'Kept Scaling', 'Color', 'w', 'Visible', 'off');
 t8 = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
@@ -629,7 +630,7 @@ end
 xlabel('Deleted Reactions'); ylabel('FragRatio / Kept'); title('Relative Disorder vs Deletion'); grid on;
 lg = legend(methods, 'Orientation', 'horizontal'); lg.Layout.Tile = 'north';
 title(t8, 'Fig 8: Scaling of Kept Efficiency');
-saveas(f8, fullfile(resultsDir, 'Fig8_Kept_Efficiency_Scaling.png'));
+saveas(f8, fullfile(plotsDir, 'Fig8_Kept_Efficiency_Scaling.png'));
 % --- FIGURE 9: BALANCED F-SCORES ---
 f9 = figure('Position', [100, 100, 1200, 800], 'Name', 'Balanced F-Scores', 'Color', 'w', 'Visible', 'off');
 t9 = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
@@ -638,7 +639,7 @@ nexttile; boxchart(categorical(T_viz.Method), T_viz.F_AA, 'GroupByColor', catego
 nexttile; boxchart(categorical(T_viz.Method), T_viz.F_MTA, 'GroupByColor', categorical(T_viz.Method)); colororder(colors); ylabel('MTA Balanced Score'); title('Core Balance'); grid on;
 nexttile; boxchart(categorical(T_viz.Method), T_viz.F_Mod, 'GroupByColor', categorical(T_viz.Method)); colororder(colors); ylabel('Modularity Balanced Score'); title('Cohesive Balance'); grid on;
 title(t9, 'Fig 9: Balanced Scores (Yield-Pruning Harmonic Mean)');
-saveas(f9, fullfile(resultsDir, 'Fig9_Balanced_Scores.png'));
+saveas(f9, fullfile(plotsDir, 'Fig9_Balanced_Scores.png'));
 % --- FIGURE 10: RAW METRICS WITH DELETION COUNTS (ADDED) ---
 f10 = figure('Position', [100, 100, 1200, 800], 'Name', 'Raw Metrics Boxplots', 'Color', 'w', 'Visible', 'off');
 t10 = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
@@ -667,13 +668,13 @@ boxchart(categorical(T_viz.Method), T_viz.LCC_Pct, 'GroupByColor', categorical(T
 colororder(colors); ylabel('LCC (%)'); title('Raw Network Integrity'); grid on;
 lg = legend(legend_labels, 'Orientation', 'horizontal'); lg.Layout.Tile = 'north';
 title(t10, 'Fig 10: Raw Functional Metrics (Ref: Deletion Counts)');
-saveas(f10, fullfile(resultsDir, 'Fig10_Raw_Metrics_With_Deletion_Counts.png'));
-fprintf('All 10 Figures saved to %s\n', resultsDir);
+saveas(f10, fullfile(plotsDir, 'Fig10_Raw_Metrics_With_Deletion_Counts.png'));
+fprintf('All 10 Figures saved to %s\n', plotsDir);
 %% 9. CORRELATION ANALYSIS 
 fprintf('=== Generating Correlation PDF Report (Overlaid) ===\n');
 metrics_list = {'Biomass', 'LCC_Pct', 'Alg_Connectivity', 'AA_Synthesis_Pct', 'MTA_Core_Pct', 'Falsepositives', 'FragRatio', 'Eff_Del_AA'};
 metric_names_clean = {'Biomass', 'LCC (%)', 'Algebraic Connectivity', 'AA Yield (%)', 'MTA Yield (%)', 'False Positives', 'Fragmentation', 'Del. Efficiency (AA/Del)'};
-pdfFile = fullfile(resultsDir, 'Method_Deletion_Correlations_Overlaid.pdf');
+pdfFile = fullfile(plotsDir, 'Method_Deletion_Correlations_Overlaid.pdf');
 if exist(pdfFile, 'file'), delete(pdfFile); end
 fig = figure('Visible', 'off', 'Position', [0 0 1200 1600], 'Color', 'w');
 t = tiledlayout(4, 2, 'TileSpacing', 'compact', 'Padding', 'normal');

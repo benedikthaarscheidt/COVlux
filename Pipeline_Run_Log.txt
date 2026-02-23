@@ -1,0 +1,877 @@
+Starting Pipeline at 21-Feb-2026 16:55:01
+-----------------------------------------------------------
+
+[1/6] RUNNING: MRAS_mapping
+MRAS Input Directory: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/grouped_by_condition
+MRAS Output Directory: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/grouped_by_condition/MRAS_outputs
+Loading model...
+Building Gene Index Map (Smart Mode: 1)...
+  Gene Map ready with 1516 unique keys.
+Computing gene promiscuity...
+Parsing GPR rules...
+Found 1 cluster files
+
+=== Processing Cluster_GSM7306273_logCPM.csv ===
+Input data: 7509 cells x 3128 genes
+[Pass] Input CSV has healthy variance (Mean Var: 7.7974)
+After duplicate collapse: 3128 unique genes
+    [Smart Mapping] Running with DIAGNOSTICS...
+       [DEBUG SUCCESS] Mapped "b0002" (from "b0002") -> Model Gene Index 237
+    -> Saved Mapped Expression: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/grouped_by_condition/mapped_for_benchmarking/Cluster_GSM7306273_logCPM_mapped_to_model.csv
+Matched to model: 1199 input cols -> 1199 model genes (79.1% coverage)
+Added microscopic noise to 289 zero-variance reactions
+Computing Covariance Matrix C...
+Computing Mean Outer Product (M_outer)...
+Check for Second moment Negativity: Smallest Value = 0.0000e+00 | Count < 0 = 0
+NaN check passed: No missing values in reaction activity or covariance matrices.
+Completed Cluster_GSM7306273_logCPM.csv in 13.5 seconds
+[SUCCESS] Finished MRAS_mapping in 13.49 seconds.
+-----------------------------------------------------------
+
+[2/6] RUNNING: COVlux
+DIV by reactions??: 1 
+COVLUX Input Source: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/grouped_by_condition/MRAS_outputs
+Loading Metabolic Model...
+Loading EFM Basis Matrices...
+Loading Big Basis (S3)...
+Merging EFM Bases...
+Removed 2103 "Ghost" EFMs.
+Final Valid EFM Count: 3186
+WARNING: 36 Reactions in model are UNCOVERED by EFMs.
+
+=== Processing 1/1: Cluster_GSM7306273_logCPM ===
+
+=== Covariance Selection (Geometric Batch Pruning) ===
+Sparsity weight: 150.00 
+  Step 1: Pruning from 3186 down to 0 (1% batch decay)...
+{Operation terminated by user during <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('solve_QR_regularized_new', '/Users/benedikthaarscheidt/COVlux/src/optimization/functions/solve_QR_regularized_new.m', 8)" style="font-weight:bold">solve_QR_regularized_new</a> (<a href="matlab: opentoline('/Users/benedikthaarscheidt/COVlux/src/optimization/functions/solve_QR_regularized_new.m',8,0)">line 8</a>)
+
+
+In <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('covariance_selection', '/Users/benedikthaarscheidt/COVlux/src/optimization/functions/covariance_selection.m', 85)" style="font-weight:bold">covariance_selection</a> (<a href="matlab: opentoline('/Users/benedikthaarscheidt/COVlux/src/optimization/functions/covariance_selection.m',85,0)">line 85</a>)
+            A_raw = solve_QR_regularized_new(E_cur, M, 1e-2);
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('COVlux', '/Users/benedikthaarscheidt/COVlux/src/optimization/COVlux.m', 291)" style="font-weight:bold">COVlux</a> (<a href="matlab: opentoline('/Users/benedikthaarscheidt/COVlux/src/optimization/COVlux.m',291,0)">line 291</a>)
+    [A_opt_QR, E_red, L, metrics]= covariance_selection(E_final, X_final, verbose, plotDir, clusterName,mean_influence,lambda_l21);
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('run', '/Applications/MATLAB_R2024b.app/toolbox/matlab/lang/run.m', 112)" style="font-weight:bold">run</a> (<a href="matlab: opentoline('/Applications/MATLAB_R2024b.app/toolbox/matlab/lang/run.m',112,0)">line 112</a>)
+evalin('caller', strcat(scriptStem, ';'));
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('master_wrapper', '/Users/benedikthaarscheidt/COVlux/master_wrapper.m', 36)" style="font-weight:bold">master_wrapper</a> (<a href="matlab: opentoline('/Users/benedikthaarscheidt/COVlux/master_wrapper.m',36,0)">line 36</a>)
+        run(script_path);
+        ^^^^^^^^^^^^^^^^
+} 
+master_wrapper
+Starting Pipeline at 21-Feb-2026 17:10:18
+-----------------------------------------------------------
+
+[1/6] RUNNING: MRAS_mapping
+MRAS Input Directory: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files
+MRAS Output Directory: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/MRAS_outputs
+Loading model...
+Building Gene Index Map (Smart Mode: 1)...
+  Gene Map ready with 1516 unique keys.
+Computing gene promiscuity...
+Parsing GPR rules...
+Found 10 cluster files
+
+=== Processing cluster_0_logCPM.csv ===
+Input data: 1514 cells x 3128 genes
+[Pass] Input CSV has healthy variance (Mean Var: 8.1786)
+After duplicate collapse: 3128 unique genes
+    [Smart Mapping] Running with DIAGNOSTICS...
+       [DEBUG SUCCESS] Mapped "b0002" (from "b0002") -> Model Gene Index 237
+    -> Saved Mapped Expression: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/mapped_for_benchmarking/cluster_0_logCPM_mapped_to_model.csv
+Matched to model: 1199 input cols -> 1199 model genes (79.1% coverage)
+Added microscopic noise to 343 zero-variance reactions
+Computing Covariance Matrix C...
+Computing Mean Outer Product (M_outer)...
+Check for Second moment Negativity: Smallest Value = 0.0000e+00 | Count < 0 = 0
+NaN check passed: No missing values in reaction activity or covariance matrices.
+Completed cluster_0_logCPM.csv in 9.3 seconds
+
+=== Processing cluster_1_logCPM.csv ===
+Input data: 1230 cells x 3128 genes
+[Pass] Input CSV has healthy variance (Mean Var: 6.2149)
+After duplicate collapse: 3128 unique genes
+    [Smart Mapping] Running with DIAGNOSTICS...
+       [DEBUG SUCCESS] Mapped "b0002" (from "b0002") -> Model Gene Index 237
+    -> Saved Mapped Expression: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/mapped_for_benchmarking/cluster_1_logCPM_mapped_to_model.csv
+Matched to model: 1199 input cols -> 1199 model genes (79.1% coverage)
+Added microscopic noise to 362 zero-variance reactions
+Computing Covariance Matrix C...
+Computing Mean Outer Product (M_outer)...
+Check for Second moment Negativity: Smallest Value = 0.0000e+00 | Count < 0 = 0
+NaN check passed: No missing values in reaction activity or covariance matrices.
+Completed cluster_1_logCPM.csv in 8.7 seconds
+
+=== Processing cluster_2_logCPM.csv ===
+Input data: 1032 cells x 3128 genes
+[Pass] Input CSV has healthy variance (Mean Var: 6.4231)
+After duplicate collapse: 3128 unique genes
+    [Smart Mapping] Running with DIAGNOSTICS...
+       [DEBUG SUCCESS] Mapped "b0002" (from "b0002") -> Model Gene Index 237
+    -> Saved Mapped Expression: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/mapped_for_benchmarking/cluster_2_logCPM_mapped_to_model.csv
+Matched to model: 1199 input cols -> 1199 model genes (79.1% coverage)
+Added microscopic noise to 371 zero-variance reactions
+Computing Covariance Matrix C...
+Computing Mean Outer Product (M_outer)...
+Check for Second moment Negativity: Smallest Value = 0.0000e+00 | Count < 0 = 0
+NaN check passed: No missing values in reaction activity or covariance matrices.
+Completed cluster_2_logCPM.csv in 8.6 seconds
+
+=== Processing cluster_3_logCPM.csv ===
+Input data: 946 cells x 3128 genes
+[Pass] Input CSV has healthy variance (Mean Var: 7.9829)
+After duplicate collapse: 3128 unique genes
+    [Smart Mapping] Running with DIAGNOSTICS...
+       [DEBUG SUCCESS] Mapped "b0002" (from "b0002") -> Model Gene Index 237
+    -> Saved Mapped Expression: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/mapped_for_benchmarking/cluster_3_logCPM_mapped_to_model.csv
+Matched to model: 1199 input cols -> 1199 model genes (79.1% coverage)
+Added microscopic noise to 342 zero-variance reactions
+Computing Covariance Matrix C...
+Computing Mean Outer Product (M_outer)...
+Check for Second moment Negativity: Smallest Value = 0.0000e+00 | Count < 0 = 0
+NaN check passed: No missing values in reaction activity or covariance matrices.
+Completed cluster_3_logCPM.csv in 8.4 seconds
+
+=== Processing cluster_4_logCPM.csv ===
+Input data: 778 cells x 3128 genes
+[Pass] Input CSV has healthy variance (Mean Var: 9.9992)
+After duplicate collapse: 3128 unique genes
+    [Smart Mapping] Running with DIAGNOSTICS...
+       [DEBUG SUCCESS] Mapped "b0002" (from "b0002") -> Model Gene Index 237
+    -> Saved Mapped Expression: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/mapped_for_benchmarking/cluster_4_logCPM_mapped_to_model.csv
+Matched to model: 1199 input cols -> 1199 model genes (79.1% coverage)
+Added microscopic noise to 331 zero-variance reactions
+Computing Covariance Matrix C...
+Computing Mean Outer Product (M_outer)...
+Check for Second moment Negativity: Smallest Value = 0.0000e+00 | Count < 0 = 0
+NaN check passed: No missing values in reaction activity or covariance matrices.
+Completed cluster_4_logCPM.csv in 8.3 seconds
+
+=== Processing cluster_5_logCPM.csv ===
+Input data: 663 cells x 3128 genes
+[Pass] Input CSV has healthy variance (Mean Var: 11.9681)
+After duplicate collapse: 3128 unique genes
+    [Smart Mapping] Running with DIAGNOSTICS...
+       [DEBUG SUCCESS] Mapped "b0002" (from "b0002") -> Model Gene Index 237
+    -> Saved Mapped Expression: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/mapped_for_benchmarking/cluster_5_logCPM_mapped_to_model.csv
+Matched to model: 1199 input cols -> 1199 model genes (79.1% coverage)
+Added microscopic noise to 323 zero-variance reactions
+Computing Covariance Matrix C...
+Computing Mean Outer Product (M_outer)...
+Check for Second moment Negativity: Smallest Value = 0.0000e+00 | Count < 0 = 0
+NaN check passed: No missing values in reaction activity or covariance matrices.
+Completed cluster_5_logCPM.csv in 8.4 seconds
+
+=== Processing cluster_6_logCPM.csv ===
+Input data: 524 cells x 3128 genes
+[Pass] Input CSV has healthy variance (Mean Var: 6.5521)
+After duplicate collapse: 3128 unique genes
+    [Smart Mapping] Running with DIAGNOSTICS...
+       [DEBUG SUCCESS] Mapped "b0002" (from "b0002") -> Model Gene Index 237
+    -> Saved Mapped Expression: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/mapped_for_benchmarking/cluster_6_logCPM_mapped_to_model.csv
+Matched to model: 1199 input cols -> 1199 model genes (79.1% coverage)
+Added microscopic noise to 423 zero-variance reactions
+Computing Covariance Matrix C...
+Computing Mean Outer Product (M_outer)...
+Check for Second moment Negativity: Smallest Value = 0.0000e+00 | Count < 0 = 0
+NaN check passed: No missing values in reaction activity or covariance matrices.
+Completed cluster_6_logCPM.csv in 8.0 seconds
+
+=== Processing cluster_7_logCPM.csv ===
+Input data: 398 cells x 3128 genes
+[Pass] Input CSV has healthy variance (Mean Var: 6.3538)
+After duplicate collapse: 3128 unique genes
+    [Smart Mapping] Running with DIAGNOSTICS...
+       [DEBUG SUCCESS] Mapped "b0002" (from "b0002") -> Model Gene Index 237
+    -> Saved Mapped Expression: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/mapped_for_benchmarking/cluster_7_logCPM_mapped_to_model.csv
+Matched to model: 1199 input cols -> 1199 model genes (79.1% coverage)
+Added microscopic noise to 461 zero-variance reactions
+Computing Covariance Matrix C...
+Computing Mean Outer Product (M_outer)...
+Check for Second moment Negativity: Smallest Value = 0.0000e+00 | Count < 0 = 0
+NaN check passed: No missing values in reaction activity or covariance matrices.
+Completed cluster_7_logCPM.csv in 8.0 seconds
+
+=== Processing cluster_8_logCPM.csv ===
+Input data: 354 cells x 3128 genes
+[Pass] Input CSV has healthy variance (Mean Var: 6.3548)
+After duplicate collapse: 3128 unique genes
+    [Smart Mapping] Running with DIAGNOSTICS...
+       [DEBUG SUCCESS] Mapped "b0002" (from "b0002") -> Model Gene Index 237
+    -> Saved Mapped Expression: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/mapped_for_benchmarking/cluster_8_logCPM_mapped_to_model.csv
+Matched to model: 1199 input cols -> 1199 model genes (79.1% coverage)
+Added microscopic noise to 436 zero-variance reactions
+Computing Covariance Matrix C...
+Computing Mean Outer Product (M_outer)...
+Check for Second moment Negativity: Smallest Value = 0.0000e+00 | Count < 0 = 0
+NaN check passed: No missing values in reaction activity or covariance matrices.
+Completed cluster_8_logCPM.csv in 8.1 seconds
+
+=== Processing cluster_9_logCPM.csv ===
+Input data: 70 cells x 3128 genes
+[Pass] Input CSV has healthy variance (Mean Var: 5.9691)
+After duplicate collapse: 3128 unique genes
+    [Smart Mapping] Running with DIAGNOSTICS...
+       [DEBUG SUCCESS] Mapped "b0002" (from "b0002") -> Model Gene Index 237
+    -> Saved Mapped Expression: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/mapped_for_benchmarking/cluster_9_logCPM_mapped_to_model.csv
+Matched to model: 1199 input cols -> 1199 model genes (79.1% coverage)
+Added microscopic noise to 853 zero-variance reactions
+Computing Covariance Matrix C...
+Computing Mean Outer Product (M_outer)...
+Check for Second moment Negativity: Smallest Value = 0.0000e+00 | Count < 0 = 0
+NaN check passed: No missing values in reaction activity or covariance matrices.
+Completed cluster_9_logCPM.csv in 8.0 seconds
+[SUCCESS] Finished MRAS_mapping in 8.03 seconds.
+-----------------------------------------------------------
+
+[2/6] RUNNING: COVlux
+DIV by reactions??: 1 
+COVLUX Input Source: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/MRAS_outputs
+Loading Metabolic Model...
+Loading EFM Basis Matrices...
+Loading Big Basis (S3)...
+Merging EFM Bases...
+Removed 2103 "Ghost" EFMs.
+Final Valid EFM Count: 3186
+WARNING: 36 Reactions in model are UNCOVERED by EFMs.
+
+=== Processing 1/10: cluster_0_logCPM ===
+
+=== Covariance Selection (Geometric Batch Pruning) ===
+Sparsity weight: 150.00 
+  Step 1: Pruning from 3186 down to 0 (1% batch decay)...
+    k=2660 | Var=53.9% | Batch=53 | Min A: -1.34e+13 | Max A: 1.42e+13
+    k=2175 | Var=53.0% | Batch=43 | Min A: -1.19e+13 | Max A: 1.40e+13
+    k=1782 | Var=52.1% | Batch=35 | Min A: -1.93e+13 | Max A: 2.64e+13
+    k=1461 | Var=51.0% | Batch=29 | Min A: -1.47e+13 | Max A: 2.28e+13
+    k=1199 | Var=49.7% | Batch=23 | Min A: -1.57e+12 | Max A: 3.25e+12
+    k= 984 | Var=47.6% | Batch=19 | Min A: -5.19e+13 | Max A: 1.17e+14
+    k= 809 | Var=44.8% | Batch=16 | Min A: -1.89e+13 | Max A: 3.95e+13
+    k= 666 | Var=42.9% | Batch=13 | Min A: -1.48e+14 | Max A: 1.49e+14
+    k= 548 | Var=39.2% | Batch=10 | Min A: -1.42e+14 | Max A: 1.42e+14
+    k= 453 | Var=35.9% | Batch=9 | Min A: -1.13e+15 | Max A: 1.16e+15
+    k= 375 | Var=32.3% | Batch=7 | Min A: -1.02e+15 | Max A: 1.25e+15
+    k= 311 | Var=28.6% | Batch=6 | Min A: -1.18e+15 | Max A: 2.40e+15
+    k= 259 | Var=24.1% | Batch=5 | Min A: -8.12e+14 | Max A: 1.30e+15
+    k= 217 | Var=21.6% | Batch=4 | Min A: -4.20e+14 | Max A: 6.80e+14
+    k= 182 | Var=20.1% | Batch=3 | Min A: -2.17e+14 | Max A: 3.92e+14
+    k= 152 | Var=18.5% | Batch=3 | Min A: -7.58e+15 | Max A: 7.98e+15
+    k= 131 | Var=17.8% | Batch=2 | Min A: -6.53e+15 | Max A: 6.97e+15
+    k= 111 | Var=16.5% | Batch=2 | Min A: -5.19e+15 | Max A: 5.54e+15
+    k=  95 | Var=14.9% | Batch=1 | Min A: -4.20e+15 | Max A: 4.57e+15
+    k=  85 | Var=13.7% | Batch=1 | Min A: -2.89e+15 | Max A: 3.36e+15
+    k=  75 | Var=11.6% | Batch=1 | Min A: -3.36e+15 | Max A: 3.85e+15
+    k=  65 | Var=10.8% | Batch=1 | Min A: -3.35e+15 | Max A: 3.99e+15
+    k=  55 | Var=8.7% | Batch=1 | Min A: -1.48e+15 | Max A: 1.87e+15
+    k=  45 | Var=5.4% | Batch=1 | Min A: -9.47e+14 | Max A: 1.57e+15
+    k=  35 | Var=4.0% | Batch=1 | Min A: -8.73e+14 | Max A: 1.53e+15
+    k=  25 | Var=2.3% | Batch=1 | Min A: -1.13e+15 | Max A: 2.02e+15
+    k=  15 | Var=1.7% | Batch=1 | Min A: -7.25e+14 | Max A: 1.46e+15
+    k=   5 | Var=0.3% | Batch=1 | Min A: -6.25e+14 | Max A: 1.45e+15
+  Step 2: Selecting Model (Closest to Ideal Point)...
+    -> Saved removal log to: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44/plots/cluster_0_logCPM_removal_log.csv
+
+  Optimal Cutoff: k=94 (Var=14.9%)
+  Step 3: Calibrating Final Weights (CVX)...
+  > CVX Calibration: Optimizing weights for 94 EFMs...
+    [Success] CVX Converged. Optimal Error: 1.4090e+08
+  --- Final Performance ---
+  Covariance Error: 0.9975
+  Variance Explained: 2.16%
+  Reconstruction Error: 0.997455 (99.75%)
+Smallest value in A: 0.000000  [Loss Analysis] Total EFMs Selected: 94
+  [Loss Analysis] Reactions Kept: 1111 (37.4%) | Lost: 1856
+  Saved full space analysis files for cluster_0_logCPM
+✓ Saved comprehensive results for cluster_0_logCPM
+
+=== Processing 2/10: cluster_1_logCPM ===
+
+=== Covariance Selection (Geometric Batch Pruning) ===
+Sparsity weight: 150.00 
+  Step 1: Pruning from 3186 down to 0 (1% batch decay)...
+    k=2660 | Var=53.2% | Batch=53 | Min A: -1.84e+13 | Max A: 1.94e+13
+    k=2175 | Var=52.4% | Batch=43 | Min A: -1.72e+13 | Max A: 1.92e+13
+    k=1782 | Var=51.4% | Batch=35 | Min A: -1.02e+13 | Max A: 1.47e+13
+    k=1461 | Var=50.6% | Batch=29 | Min A: -2.16e+13 | Max A: 3.25e+13
+    k=1199 | Var=49.4% | Batch=23 | Min A: -4.47e+12 | Max A: 5.65e+12
+    k= 984 | Var=47.2% | Batch=19 | Min A: -1.44e+12 | Max A: 5.44e+12
+    k= 809 | Var=44.9% | Batch=16 | Min A: -1.14e+12 | Max A: 2.09e+12
+    k= 666 | Var=40.3% | Batch=13 | Min A: -9.28e+13 | Max A: 9.48e+13
+    k= 548 | Var=38.2% | Batch=10 | Min A: -7.23e+14 | Max A: 7.25e+14
+    k= 453 | Var=34.3% | Batch=9 | Min A: -9.89e+14 | Max A: 3.05e+15
+    k= 375 | Var=30.4% | Batch=7 | Min A: -1.51e+15 | Max A: 2.78e+15
+    k= 311 | Var=27.2% | Batch=6 | Min A: -8.37e+14 | Max A: 2.46e+15
+    k= 259 | Var=24.9% | Batch=5 | Min A: -8.39e+14 | Max A: 1.91e+15
+    k= 217 | Var=22.1% | Batch=4 | Min A: -6.18e+14 | Max A: 1.65e+15
+    k= 182 | Var=19.8% | Batch=3 | Min A: -6.59e+14 | Max A: 1.51e+15
+    k= 152 | Var=17.8% | Batch=3 | Min A: -7.16e+15 | Max A: 8.09e+15
+    k= 131 | Var=16.3% | Batch=2 | Min A: -6.96e+15 | Max A: 7.98e+15
+    k= 111 | Var=14.6% | Batch=2 | Min A: -7.74e+15 | Max A: 9.05e+15
+    k=  95 | Var=13.2% | Batch=1 | Min A: -9.00e+15 | Max A: 1.04e+16
+    k=  85 | Var=12.4% | Batch=1 | Min A: -4.96e+15 | Max A: 6.03e+15
+    k=  75 | Var=11.6% | Batch=1 | Min A: -1.89e+15 | Max A: 2.50e+15
+    k=  65 | Var=10.4% | Batch=1 | Min A: -1.22e+15 | Max A: 1.79e+15
+    k=  55 | Var=9.6% | Batch=1 | Min A: -1.20e+15 | Max A: 1.72e+15
+    k=  45 | Var=8.2% | Batch=1 | Min A: -1.03e+15 | Max A: 1.61e+15
+    k=  35 | Var=6.6% | Batch=1 | Min A: -9.46e+14 | Max A: 1.85e+15
+    k=  25 | Var=5.2% | Batch=1 | Min A: -7.14e+14 | Max A: 1.46e+15
+    k=  15 | Var=1.3% | Batch=1 | Min A: -6.76e+14 | Max A: 1.35e+15
+    k=   5 | Var=0.3% | Batch=1 | Min A: -3.56e+14 | Max A: 1.03e+15
+  Step 2: Selecting Model (Closest to Ideal Point)...
+    -> Saved removal log to: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44/plots/cluster_1_logCPM_removal_log.csv
+
+  Optimal Cutoff: k=78 (Var=11.9%)
+  Step 3: Calibrating Final Weights (CVX)...
+  > CVX Calibration: Optimizing weights for 78 EFMs...
+    [Success] CVX Converged. Optimal Error: 1.6076e+08
+  --- Final Performance ---
+  Covariance Error: 0.9950
+  Variance Explained: 2.12%
+  Reconstruction Error: 0.995007 (99.50%)
+Smallest value in A: 0.000000  [Loss Analysis] Total EFMs Selected: 78
+  [Loss Analysis] Reactions Kept: 1058 (35.7%) | Lost: 1909
+  Saved full space analysis files for cluster_1_logCPM
+✓ Saved comprehensive results for cluster_1_logCPM
+
+=== Processing 3/10: cluster_2_logCPM ===
+
+=== Covariance Selection (Geometric Batch Pruning) ===
+Sparsity weight: 150.00 
+  Step 1: Pruning from 3186 down to 0 (1% batch decay)...
+    k=2660 | Var=56.6% | Batch=53 | Min A: -1.41e+13 | Max A: 1.49e+13
+    k=2175 | Var=55.9% | Batch=43 | Min A: -1.32e+13 | Max A: 1.49e+13
+    k=1782 | Var=55.2% | Batch=35 | Min A: -4.33e+12 | Max A: 4.76e+12
+    k=1461 | Var=54.0% | Batch=29 | Min A: -3.24e+12 | Max A: 4.50e+12
+    k=1199 | Var=52.7% | Batch=23 | Min A: -6.64e+13 | Max A: 9.23e+13
+    k= 984 | Var=50.7% | Batch=19 | Min A: -2.11e+13 | Max A: 2.72e+13
+    k= 809 | Var=48.6% | Batch=16 | Min A: -6.04e+13 | Max A: 6.20e+13
+    k= 666 | Var=46.4% | Batch=13 | Min A: -2.12e+13 | Max A: 2.57e+13
+    k= 548 | Var=44.0% | Batch=10 | Min A: -1.42e+14 | Max A: 1.43e+14
+    k= 453 | Var=40.5% | Batch=9 | Min A: -1.08e+14 | Max A: 1.08e+14
+    k= 375 | Var=33.3% | Batch=7 | Min A: -1.08e+14 | Max A: 1.09e+14
+    k= 311 | Var=30.0% | Batch=6 | Min A: -4.03e+14 | Max A: 1.30e+15
+    k= 259 | Var=27.7% | Batch=5 | Min A: -2.30e+14 | Max A: 5.89e+14
+    k= 217 | Var=22.8% | Batch=4 | Min A: -3.34e+14 | Max A: 7.45e+14
+    k= 182 | Var=19.7% | Batch=3 | Min A: -3.10e+14 | Max A: 6.91e+14
+    k= 152 | Var=18.3% | Batch=3 | Min A: -6.89e+15 | Max A: 9.00e+15
+    k= 131 | Var=16.6% | Batch=2 | Min A: -5.22e+15 | Max A: 6.41e+15
+    k= 111 | Var=13.7% | Batch=2 | Min A: -4.29e+15 | Max A: 5.39e+15
+    k=  95 | Var=11.2% | Batch=1 | Min A: -3.67e+15 | Max A: 4.68e+15
+    k=  85 | Var=10.6% | Batch=1 | Min A: -3.67e+15 | Max A: 8.57e+15
+    k=  75 | Var=10.1% | Batch=1 | Min A: -3.38e+15 | Max A: 6.44e+15
+    k=  65 | Var=8.9% | Batch=1 | Min A: -3.19e+15 | Max A: 5.31e+15
+    k=  55 | Var=7.4% | Batch=1 | Min A: -3.10e+15 | Max A: 4.88e+15
+    k=  45 | Var=6.8% | Batch=1 | Min A: -3.77e+15 | Max A: 4.89e+15
+    k=  35 | Var=6.3% | Batch=1 | Min A: -2.29e+15 | Max A: 2.95e+15
+    k=  25 | Var=5.4% | Batch=1 | Min A: -3.55e+15 | Max A: 3.67e+15
+    k=  15 | Var=4.1% | Batch=1 | Min A: -5.71e+14 | Max A: 1.18e+15
+    k=   5 | Var=1.4% | Batch=1 | Min A: -9.11e+14 | Max A: 1.99e+15
+  Step 2: Selecting Model (Closest to Ideal Point)...
+    -> Saved removal log to: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44/plots/cluster_2_logCPM_removal_log.csv
+
+  Optimal Cutoff: k=115 (Var=14.8%)
+  Step 3: Calibrating Final Weights (CVX)...
+  > CVX Calibration: Optimizing weights for 115 EFMs...
+    [Success] CVX Converged. Optimal Error: 2.0681e+08
+  --- Final Performance ---
+  Covariance Error: 0.9978
+  Variance Explained: 2.18%
+  Reconstruction Error: 0.997839 (99.78%)
+Smallest value in A: 0.000000  [Loss Analysis] Total EFMs Selected: 115
+  [Loss Analysis] Reactions Kept: 1123 (37.8%) | Lost: 1844
+  Saved full space analysis files for cluster_2_logCPM
+✓ Saved comprehensive results for cluster_2_logCPM
+
+=== Processing 4/10: cluster_3_logCPM ===
+
+=== Covariance Selection (Geometric Batch Pruning) ===
+Sparsity weight: 150.00 
+  Step 1: Pruning from 3186 down to 0 (1% batch decay)...
+    k=2660 | Var=57.2% | Batch=53 | Min A: -8.91e+12 | Max A: 9.41e+12
+    k=2175 | Var=56.3% | Batch=43 | Min A: -8.30e+12 | Max A: 9.37e+12
+    k=1782 | Var=55.8% | Batch=35 | Min A: -2.97e+12 | Max A: 3.27e+12
+    k=1461 | Var=54.8% | Batch=29 | Min A: -7.49e+12 | Max A: 1.09e+13
+    k=1199 | Var=54.0% | Batch=23 | Min A: -6.21e+13 | Max A: 8.34e+13
+    k= 984 | Var=52.5% | Batch=19 | Min A: -1.33e+13 | Max A: 1.82e+13
+    k= 809 | Var=50.0% | Batch=16 | Min A: -6.58e+13 | Max A: 6.71e+13
+    k= 666 | Var=48.1% | Batch=13 | Min A: -6.77e+13 | Max A: 6.92e+13
+    k= 548 | Var=46.1% | Batch=10 | Min A: -1.94e+13 | Max A: 2.04e+13
+    k= 453 | Var=41.1% | Batch=9 | Min A: -4.38e+13 | Max A: 5.29e+13
+    k= 375 | Var=38.3% | Batch=7 | Min A: -9.60e+14 | Max A: 2.98e+15
+    k= 311 | Var=35.5% | Batch=6 | Min A: -1.02e+15 | Max A: 1.45e+15
+    k= 259 | Var=31.3% | Batch=5 | Min A: -1.77e+15 | Max A: 5.93e+15
+    k= 217 | Var=28.5% | Batch=4 | Min A: -2.25e+15 | Max A: 3.40e+15
+    k= 182 | Var=25.8% | Batch=3 | Min A: -1.87e+15 | Max A: 2.67e+15
+    k= 152 | Var=23.2% | Batch=3 | Min A: -1.96e+15 | Max A: 2.34e+15
+    k= 131 | Var=21.6% | Batch=2 | Min A: -1.65e+15 | Max A: 2.10e+15
+    k= 111 | Var=16.7% | Batch=2 | Min A: -5.60e+15 | Max A: 8.31e+15
+    k=  95 | Var=14.5% | Batch=1 | Min A: -5.96e+15 | Max A: 9.20e+15
+    k=  85 | Var=13.0% | Batch=1 | Min A: -5.38e+15 | Max A: 7.30e+15
+    k=  75 | Var=11.5% | Batch=1 | Min A: -6.04e+15 | Max A: 8.58e+15
+    k=  65 | Var=10.3% | Batch=1 | Min A: -3.20e+15 | Max A: 6.15e+15
+    k=  55 | Var=7.1% | Batch=1 | Min A: -1.04e+15 | Max A: 2.14e+15
+    k=  45 | Var=4.0% | Batch=1 | Min A: -1.24e+15 | Max A: 1.89e+15
+    k=  35 | Var=3.0% | Batch=1 | Min A: -1.32e+15 | Max A: 2.05e+15
+    k=  25 | Var=2.5% | Batch=1 | Min A: -1.72e+15 | Max A: 2.63e+15
+    k=  15 | Var=1.8% | Batch=1 | Min A: -1.23e+15 | Max A: 2.29e+15
+    k=   5 | Var=0.5% | Batch=1 | Min A: -8.50e+14 | Max A: 1.80e+15
+  Step 2: Selecting Model (Closest to Ideal Point)...
+    -> Saved removal log to: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44/plots/cluster_3_logCPM_removal_log.csv
+
+  Optimal Cutoff: k=127 (Var=21.2%)
+  Step 3: Calibrating Final Weights (CVX)...
+  > CVX Calibration: Optimizing weights for 127 EFMs...
+    [Fallback] Computed Algebraic Projection.
+  --- Final Performance ---
+  Covariance Error: 0.9275
+  Variance Explained: 20.25%
+  Reconstruction Error: 0.927518 (92.75%)
+Smallest value in A: -140400372721.861908  [Loss Analysis] Total EFMs Selected: 127
+  [Loss Analysis] Reactions Kept: 1317 (44.4%) | Lost: 1650
+  Saved full space analysis files for cluster_3_logCPM
+✓ Saved comprehensive results for cluster_3_logCPM
+
+=== Processing 5/10: cluster_4_logCPM ===
+
+=== Covariance Selection (Geometric Batch Pruning) ===
+Sparsity weight: 150.00 
+  Step 1: Pruning from 3186 down to 0 (1% batch decay)...
+    k=2660 | Var=57.3% | Batch=53 | Min A: -5.79e+12 | Max A: 6.12e+12
+    k=2175 | Var=56.7% | Batch=43 | Min A: -5.20e+12 | Max A: 5.82e+12
+    k=1782 | Var=56.2% | Batch=35 | Min A: -1.90e+12 | Max A: 2.01e+12
+    k=1461 | Var=54.9% | Batch=29 | Min A: -1.87e+12 | Max A: 2.75e+12
+    k=1199 | Var=53.7% | Batch=23 | Min A: -2.88e+13 | Max A: 4.09e+13
+    k= 984 | Var=52.2% | Batch=19 | Min A: -1.46e+12 | Max A: 2.35e+12
+    k= 809 | Var=50.3% | Batch=16 | Min A: -2.17e+14 | Max A: 2.18e+14
+    k= 666 | Var=46.8% | Batch=13 | Min A: -2.17e+13 | Max A: 3.19e+13
+    k= 548 | Var=44.3% | Batch=10 | Min A: -2.08e+13 | Max A: 2.88e+13
+    k= 453 | Var=40.6% | Batch=9 | Min A: -1.24e+14 | Max A: 5.61e+14
+    k= 375 | Var=35.9% | Batch=7 | Min A: -3.18e+14 | Max A: 7.20e+14
+    k= 311 | Var=31.9% | Batch=6 | Min A: -4.21e+14 | Max A: 9.81e+14
+    k= 259 | Var=28.4% | Batch=5 | Min A: -5.65e+14 | Max A: 1.21e+15
+    k= 217 | Var=25.7% | Batch=4 | Min A: -1.49e+15 | Max A: 2.46e+15
+    k= 182 | Var=22.3% | Batch=3 | Min A: -1.69e+15 | Max A: 2.50e+15
+    k= 152 | Var=20.7% | Batch=3 | Min A: -3.57e+15 | Max A: 8.12e+15
+    k= 131 | Var=19.3% | Batch=2 | Min A: -4.44e+15 | Max A: 9.97e+15
+    k= 111 | Var=18.0% | Batch=2 | Min A: -2.82e+15 | Max A: 4.98e+15
+    k=  95 | Var=16.6% | Batch=1 | Min A: -2.55e+15 | Max A: 4.33e+15
+    k=  85 | Var=15.3% | Batch=1 | Min A: -2.46e+15 | Max A: 4.18e+15
+    k=  75 | Var=11.7% | Batch=1 | Min A: -6.62e+15 | Max A: 8.70e+15
+    k=  65 | Var=9.8% | Batch=1 | Min A: -3.42e+15 | Max A: 4.64e+15
+    k=  55 | Var=8.9% | Batch=1 | Min A: -1.85e+15 | Max A: 3.69e+15
+    k=  45 | Var=7.3% | Batch=1 | Min A: -7.75e+14 | Max A: 1.43e+15
+    k=  35 | Var=5.5% | Batch=1 | Min A: -8.54e+14 | Max A: 1.41e+15
+    k=  25 | Var=4.5% | Batch=1 | Min A: -5.69e+14 | Max A: 1.31e+15
+    k=  15 | Var=1.4% | Batch=1 | Min A: -1.06e+15 | Max A: 1.85e+15
+    k=   5 | Var=0.5% | Batch=1 | Min A: -6.88e+14 | Max A: 1.78e+15
+  Step 2: Selecting Model (Closest to Ideal Point)...
+    -> Saved removal log to: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44/plots/cluster_4_logCPM_removal_log.csv
+
+  Optimal Cutoff: k=88 (Var=16.2%)
+  Step 3: Calibrating Final Weights (CVX)...
+  > CVX Calibration: Optimizing weights for 88 EFMs...
+    [Success] CVX Converged. Optimal Error: 1.8246e+08
+  --- Final Performance ---
+  Covariance Error: 0.9965
+  Variance Explained: 3.31%
+  Reconstruction Error: 0.996522 (99.65%)
+Smallest value in A: 0.000000  [Loss Analysis] Total EFMs Selected: 88
+  [Loss Analysis] Reactions Kept: 1098 (37.0%) | Lost: 1869
+  Saved full space analysis files for cluster_4_logCPM
+✓ Saved comprehensive results for cluster_4_logCPM
+
+=== Processing 6/10: cluster_5_logCPM ===
+
+=== Covariance Selection (Geometric Batch Pruning) ===
+Sparsity weight: 150.00 
+  Step 1: Pruning from 3186 down to 0 (1% batch decay)...
+    k=2660 | Var=55.5% | Batch=53 | Min A: -6.53e+12 | Max A: 7.00e+12
+    k=2175 | Var=54.8% | Batch=43 | Min A: -6.02e+12 | Max A: 6.90e+12
+    k=1782 | Var=53.9% | Batch=35 | Min A: -3.65e+12 | Max A: 5.34e+12
+    k=1461 | Var=53.1% | Batch=29 | Min A: -2.92e+12 | Max A: 4.30e+12
+    k=1199 | Var=51.5% | Batch=23 | Min A: -5.44e+12 | Max A: 2.63e+13
+    k= 984 | Var=50.0% | Batch=19 | Min A: -1.29e+12 | Max A: 2.41e+12
+    k= 809 | Var=46.1% | Batch=16 | Min A: -3.84e+13 | Max A: 3.93e+13
+    k= 666 | Var=43.0% | Batch=13 | Min A: -5.89e+13 | Max A: 5.91e+13
+    k= 548 | Var=40.8% | Batch=10 | Min A: -5.91e+13 | Max A: 5.91e+13
+    k= 453 | Var=37.4% | Batch=9 | Min A: -9.86e+13 | Max A: 4.45e+14
+    k= 375 | Var=34.0% | Batch=7 | Min A: -5.93e+13 | Max A: 2.32e+14
+    k= 311 | Var=30.5% | Batch=6 | Min A: -7.45e+13 | Max A: 2.36e+14
+    k= 259 | Var=25.5% | Batch=5 | Min A: -1.07e+14 | Max A: 2.39e+14
+    k= 217 | Var=23.2% | Batch=4 | Min A: -8.95e+13 | Max A: 2.10e+14
+    k= 182 | Var=21.2% | Batch=3 | Min A: -1.50e+15 | Max A: 3.14e+15
+    k= 152 | Var=18.3% | Batch=3 | Min A: -1.93e+15 | Max A: 3.77e+15
+    k= 131 | Var=14.2% | Batch=2 | Min A: -2.19e+15 | Max A: 3.44e+15
+    k= 111 | Var=13.0% | Batch=2 | Min A: -1.98e+15 | Max A: 4.13e+15
+    k=  95 | Var=12.4% | Batch=1 | Min A: -2.11e+15 | Max A: 4.88e+15
+    k=  85 | Var=11.7% | Batch=1 | Min A: -1.78e+15 | Max A: 3.31e+15
+    k=  75 | Var=11.3% | Batch=1 | Min A: -1.46e+15 | Max A: 3.58e+15
+    k=  65 | Var=10.1% | Batch=1 | Min A: -1.08e+15 | Max A: 2.35e+15
+    k=  55 | Var=9.6% | Batch=1 | Min A: -1.03e+15 | Max A: 1.84e+15
+    k=  45 | Var=7.5% | Batch=1 | Min A: -8.02e+14 | Max A: 1.73e+15
+    k=  35 | Var=2.6% | Batch=1 | Min A: -9.48e+14 | Max A: 1.88e+15
+    k=  25 | Var=1.9% | Batch=1 | Min A: -6.87e+14 | Max A: 1.65e+15
+    k=  15 | Var=1.4% | Batch=1 | Min A: -7.42e+14 | Max A: 1.81e+15
+    k=   5 | Var=0.5% | Batch=1 | Min A: -7.99e+14 | Max A: 1.87e+15
+  Step 2: Selecting Model (Closest to Ideal Point)...
+    -> Saved removal log to: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44/plots/cluster_5_logCPM_removal_log.csv
+
+  Optimal Cutoff: k=72 (Var=11.1%)
+  Step 3: Calibrating Final Weights (CVX)...
+  > CVX Calibration: Optimizing weights for 72 EFMs...
+    [Success] CVX Converged. Optimal Error: 1.2396e+08
+  --- Final Performance ---
+  Covariance Error: 0.9985
+  Variance Explained: 2.09%
+  Reconstruction Error: 0.998497 (99.85%)
+Smallest value in A: 0.000000  [Loss Analysis] Total EFMs Selected: 72
+  [Loss Analysis] Reactions Kept: 1052 (35.5%) | Lost: 1915
+  Saved full space analysis files for cluster_5_logCPM
+✓ Saved comprehensive results for cluster_5_logCPM
+
+=== Processing 7/10: cluster_6_logCPM ===
+
+=== Covariance Selection (Geometric Batch Pruning) ===
+Sparsity weight: 150.00 
+  Step 1: Pruning from 3186 down to 0 (1% batch decay)...
+    k=2660 | Var=70.8% | Batch=53 | Min A: -4.78e+12 | Max A: 6.77e+12
+    k=2175 | Var=70.5% | Batch=43 | Min A: -5.10e+12 | Max A: 7.29e+12
+    k=1782 | Var=70.2% | Batch=35 | Min A: -2.20e+12 | Max A: 4.08e+12
+    k=1461 | Var=69.8% | Batch=29 | Min A: -2.29e+12 | Max A: 4.16e+12
+    k=1199 | Var=68.7% | Batch=23 | Min A: -1.06e+13 | Max A: 2.18e+13
+    k= 984 | Var=68.0% | Batch=19 | Min A: -8.87e+12 | Max A: 1.27e+13
+    k= 809 | Var=66.0% | Batch=16 | Min A: -2.11e+13 | Max A: 4.45e+13
+    k= 666 | Var=64.2% | Batch=13 | Min A: -6.91e+13 | Max A: 7.09e+13
+    k= 548 | Var=61.8% | Batch=10 | Min A: -3.46e+13 | Max A: 3.55e+13
+    k= 453 | Var=55.8% | Batch=9 | Min A: -1.88e+15 | Max A: 6.53e+15
+    k= 375 | Var=45.0% | Batch=7 | Min A: -1.94e+15 | Max A: 6.50e+15
+    k= 311 | Var=39.9% | Batch=6 | Min A: -3.33e+15 | Max A: 6.69e+15
+    k= 259 | Var=36.6% | Batch=5 | Min A: -2.28e+15 | Max A: 5.70e+15
+    k= 217 | Var=34.1% | Batch=4 | Min A: -1.04e+15 | Max A: 2.56e+15
+    k= 182 | Var=30.2% | Batch=3 | Min A: -7.67e+14 | Max A: 1.88e+15
+    k= 152 | Var=26.7% | Batch=3 | Min A: -2.09e+16 | Max A: 2.91e+16
+    k= 131 | Var=24.8% | Batch=2 | Min A: -1.50e+16 | Max A: 1.98e+16
+    k= 111 | Var=22.3% | Batch=2 | Min A: -8.58e+15 | Max A: 1.29e+16
+    k=  95 | Var=20.7% | Batch=1 | Min A: -1.20e+16 | Max A: 1.68e+16
+    k=  85 | Var=19.2% | Batch=1 | Min A: -4.18e+15 | Max A: 9.09e+15
+    k=  75 | Var=17.9% | Batch=1 | Min A: -3.73e+15 | Max A: 8.88e+15
+    k=  65 | Var=16.8% | Batch=1 | Min A: -4.21e+15 | Max A: 8.02e+15
+    k=  55 | Var=16.3% | Batch=1 | Min A: -3.71e+15 | Max A: 7.32e+15
+    k=  45 | Var=15.1% | Batch=1 | Min A: -4.31e+15 | Max A: 6.16e+15
+    k=  35 | Var=12.0% | Batch=1 | Min A: -7.62e+15 | Max A: 1.05e+16
+    k=  25 | Var=5.6% | Batch=1 | Min A: -5.73e+15 | Max A: 8.84e+15
+    k=  15 | Var=2.0% | Batch=1 | Min A: -3.10e+15 | Max A: 5.01e+15
+    k=   5 | Var=0.3% | Batch=1 | Min A: -3.16e+15 | Max A: 6.57e+15
+  Step 2: Selecting Model (Closest to Ideal Point)...
+    -> Saved removal log to: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44/plots/cluster_6_logCPM_removal_log.csv
+
+  Optimal Cutoff: k=96 (Var=20.9%)
+  Step 3: Calibrating Final Weights (CVX)...
+  > CVX Calibration: Optimizing weights for 96 EFMs...
+    [Success] CVX Converged. Optimal Error: 1.2143e+09
+  --- Final Performance ---
+  Covariance Error: 0.9995
+  Variance Explained: 1.99%
+  Reconstruction Error: 0.999464 (99.95%)
+Smallest value in A: 0.000000  [Loss Analysis] Total EFMs Selected: 96
+  [Loss Analysis] Reactions Kept: 1077 (36.3%) | Lost: 1890
+  Saved full space analysis files for cluster_6_logCPM
+✓ Saved comprehensive results for cluster_6_logCPM
+
+=== Processing 8/10: cluster_7_logCPM ===
+
+=== Covariance Selection (Geometric Batch Pruning) ===
+Sparsity weight: 150.00 
+  Step 1: Pruning from 3186 down to 0 (1% batch decay)...
+    k=2660 | Var=64.6% | Batch=53 | Min A: -1.17e+13 | Max A: 1.23e+13
+    k=2175 | Var=64.3% | Batch=43 | Min A: -1.09e+13 | Max A: 1.22e+13
+    k=1782 | Var=63.8% | Batch=35 | Min A: -3.52e+12 | Max A: 3.79e+12
+    k=1461 | Var=62.8% | Batch=29 | Min A: -4.75e+12 | Max A: 6.57e+12
+    k=1199 | Var=62.0% | Batch=23 | Min A: -3.67e+13 | Max A: 4.94e+13
+    k= 984 | Var=60.6% | Batch=19 | Min A: -1.57e+12 | Max A: 8.46e+12
+    k= 809 | Var=57.8% | Batch=16 | Min A: -7.83e+13 | Max A: 1.04e+14
+    k= 666 | Var=54.9% | Batch=13 | Min A: -9.61e+13 | Max A: 1.28e+14
+    k= 548 | Var=50.7% | Batch=10 | Min A: -8.32e+13 | Max A: 1.13e+14
+    k= 453 | Var=46.1% | Batch=9 | Min A: -1.62e+14 | Max A: 6.22e+14
+    k= 375 | Var=40.7% | Batch=7 | Min A: -4.41e+14 | Max A: 1.14e+15
+    k= 311 | Var=35.0% | Batch=6 | Min A: -4.38e+14 | Max A: 1.00e+15
+    k= 259 | Var=30.7% | Batch=5 | Min A: -5.32e+14 | Max A: 1.25e+15
+    k= 217 | Var=27.0% | Batch=4 | Min A: -3.56e+14 | Max A: 8.37e+14
+    k= 182 | Var=24.1% | Batch=3 | Min A: -2.57e+14 | Max A: 6.58e+14
+    k= 152 | Var=19.6% | Batch=3 | Min A: -1.00e+16 | Max A: 2.09e+16
+    k= 131 | Var=18.2% | Batch=2 | Min A: -1.40e+16 | Max A: 2.81e+16
+    k= 111 | Var=16.8% | Batch=2 | Min A: -1.41e+16 | Max A: 2.37e+16
+    k=  95 | Var=15.5% | Batch=1 | Min A: -8.81e+15 | Max A: 1.35e+16
+    k=  85 | Var=14.1% | Batch=1 | Min A: -6.23e+15 | Max A: 1.12e+16
+    k=  75 | Var=13.5% | Batch=1 | Min A: -7.54e+15 | Max A: 1.18e+16
+    k=  65 | Var=13.1% | Batch=1 | Min A: -7.22e+15 | Max A: 1.14e+16
+    k=  55 | Var=12.4% | Batch=1 | Min A: -5.75e+15 | Max A: 9.69e+15
+    k=  45 | Var=10.0% | Batch=1 | Min A: -2.86e+15 | Max A: 5.37e+15
+    k=  35 | Var=7.6% | Batch=1 | Min A: -3.05e+15 | Max A: 5.37e+15
+    k=  25 | Var=5.6% | Batch=1 | Min A: -2.13e+15 | Max A: 4.43e+15
+    k=  15 | Var=1.7% | Batch=1 | Min A: -2.11e+15 | Max A: 5.76e+15
+    k=   5 | Var=0.6% | Batch=1 | Min A: -2.05e+15 | Max A: 5.40e+15
+  Step 2: Selecting Model (Closest to Ideal Point)...
+    -> Saved removal log to: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44/plots/cluster_7_logCPM_removal_log.csv
+
+  Optimal Cutoff: k=56 (Var=12.4%)
+  Step 3: Calibrating Final Weights (CVX)...
+  > CVX Calibration: Optimizing weights for 56 EFMs...
+    [Success] CVX Converged. Optimal Error: 3.6247e+08
+  --- Final Performance ---
+  Covariance Error: 0.9991
+  Variance Explained: 1.54%
+  Reconstruction Error: 0.999121 (99.91%)
+Smallest value in A: 0.000000  [Loss Analysis] Total EFMs Selected: 56
+  [Loss Analysis] Reactions Kept: 901 (30.4%) | Lost: 2066
+  Saved full space analysis files for cluster_7_logCPM
+✓ Saved comprehensive results for cluster_7_logCPM
+
+=== Processing 9/10: cluster_8_logCPM ===
+
+=== Covariance Selection (Geometric Batch Pruning) ===
+Sparsity weight: 150.00 
+  Step 1: Pruning from 3186 down to 0 (1% batch decay)...
+    k=2660 | Var=58.4% | Batch=53 | Min A: -2.01e+13 | Max A: 2.11e+13
+    k=2175 | Var=58.0% | Batch=43 | Min A: -1.95e+13 | Max A: 2.17e+13
+    k=1782 | Var=57.6% | Batch=35 | Min A: -1.93e+13 | Max A: 2.23e+13
+    k=1461 | Var=56.8% | Batch=29 | Min A: -8.36e+12 | Max A: 1.33e+13
+    k=1199 | Var=55.8% | Batch=23 | Min A: -1.94e+13 | Max A: 6.90e+13
+    k= 984 | Var=54.6% | Batch=19 | Min A: -2.87e+13 | Max A: 5.62e+13
+    k= 809 | Var=52.5% | Batch=16 | Min A: -4.31e+13 | Max A: 4.52e+13
+    k= 666 | Var=51.0% | Batch=13 | Min A: -2.77e+13 | Max A: 4.36e+13
+    k= 548 | Var=49.3% | Batch=10 | Min A: -3.03e+13 | Max A: 4.16e+13
+    k= 453 | Var=45.8% | Batch=9 | Min A: -3.75e+13 | Max A: 5.70e+13
+    k= 375 | Var=40.5% | Batch=7 | Min A: -1.78e+15 | Max A: 2.53e+15
+    k= 311 | Var=37.1% | Batch=6 | Min A: -2.09e+15 | Max A: 2.39e+15
+    k= 259 | Var=33.9% | Batch=5 | Min A: -5.44e+15 | Max A: 6.35e+15
+    k= 217 | Var=30.1% | Batch=4 | Min A: -4.94e+15 | Max A: 6.25e+15
+    k= 182 | Var=23.6% | Batch=3 | Min A: -5.21e+15 | Max A: 7.53e+15
+    k= 152 | Var=19.7% | Batch=3 | Min A: -7.07e+15 | Max A: 1.04e+16
+    k= 131 | Var=18.5% | Batch=2 | Min A: -8.17e+15 | Max A: 1.12e+16
+    k= 111 | Var=17.0% | Batch=2 | Min A: -2.25e+15 | Max A: 4.49e+15
+    k=  95 | Var=16.0% | Batch=1 | Min A: -1.96e+15 | Max A: 3.61e+15
+    k=  85 | Var=14.9% | Batch=1 | Min A: -1.30e+15 | Max A: 2.52e+15
+    k=  75 | Var=13.6% | Batch=1 | Min A: -1.09e+15 | Max A: 1.50e+15
+    k=  65 | Var=12.7% | Batch=1 | Min A: -1.04e+15 | Max A: 1.38e+15
+    k=  55 | Var=11.4% | Batch=1 | Min A: -1.07e+15 | Max A: 1.43e+15
+    k=  45 | Var=9.5% | Batch=1 | Min A: -9.81e+14 | Max A: 1.34e+15
+    k=  35 | Var=4.2% | Batch=1 | Min A: -8.19e+14 | Max A: 1.17e+15
+    k=  25 | Var=3.2% | Batch=1 | Min A: -7.48e+14 | Max A: 1.10e+15
+    k=  15 | Var=1.0% | Batch=1 | Min A: -1.13e+15 | Max A: 1.60e+15
+    k=   5 | Var=0.5% | Batch=1 | Min A: -1.03e+15 | Max A: 1.61e+15
+  Step 2: Selecting Model (Closest to Ideal Point)...
+    -> Saved removal log to: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44/plots/cluster_8_logCPM_removal_log.csv
+
+  Optimal Cutoff: k=83 (Var=14.8%)
+  Step 3: Calibrating Final Weights (CVX)...
+  > CVX Calibration: Optimizing weights for 83 EFMs...
+    [Success] CVX Converged. Optimal Error: 5.7416e+08
+  --- Final Performance ---
+  Covariance Error: 0.9984
+  Variance Explained: 2.08%
+  Reconstruction Error: 0.998431 (99.84%)
+Smallest value in A: 0.000000  [Loss Analysis] Total EFMs Selected: 83
+  [Loss Analysis] Reactions Kept: 1075 (36.2%) | Lost: 1892
+  Saved full space analysis files for cluster_8_logCPM
+✓ Saved comprehensive results for cluster_8_logCPM
+
+=== Processing 10/10: cluster_9_logCPM ===
+
+=== Covariance Selection (Geometric Batch Pruning) ===
+Sparsity weight: 150.00 
+  Step 1: Pruning from 3186 down to 0 (1% batch decay)...
+    k=2660 | Var=62.3% | Batch=53 | Min A: -7.62e+12 | Max A: 8.71e+12
+    k=2175 | Var=61.9% | Batch=43 | Min A: -7.40e+12 | Max A: 8.80e+12
+    k=1782 | Var=61.4% | Batch=35 | Min A: -2.19e+12 | Max A: 2.59e+12
+    k=1461 | Var=60.3% | Batch=29 | Min A: -1.61e+12 | Max A: 3.28e+12
+    k=1199 | Var=59.1% | Batch=23 | Min A: -1.87e+13 | Max A: 2.46e+13
+    k= 984 | Var=57.5% | Batch=19 | Min A: -4.35e+12 | Max A: 6.30e+12
+    k= 809 | Var=55.2% | Batch=16 | Min A: -9.67e+12 | Max A: 1.04e+13
+    k= 666 | Var=52.8% | Batch=13 | Min A: -1.62e+13 | Max A: 1.68e+13
+    k= 548 | Var=50.5% | Batch=10 | Min A: -1.93e+13 | Max A: 1.96e+13
+    k= 453 | Var=47.7% | Batch=9 | Min A: -3.01e+13 | Max A: 3.78e+13
+    k= 375 | Var=44.1% | Batch=7 | Min A: -1.66e+11 | Max A: 3.40e+11
+    k= 311 | Var=40.1% | Batch=6 | Min A: -3.66e+11 | Max A: 3.89e+11
+    k= 259 | Var=37.0% | Batch=5 | Min A: -2.50e+11 | Max A: 2.59e+11
+    k= 217 | Var=33.9% | Batch=4 | Min A: -1.61e+11 | Max A: 1.84e+11
+    k= 182 | Var=30.4% | Batch=3 | Min A: -1.27e+11 | Max A: 1.38e+11
+    k= 152 | Var=27.7% | Batch=3 | Min A: -9.52e+10 | Max A: 1.09e+11
+    k= 131 | Var=26.0% | Batch=2 | Min A: -7.28e+10 | Max A: 9.32e+10
+    k= 111 | Var=23.8% | Batch=2 | Min A: -3.01e+10 | Max A: 4.03e+10
+    k=  95 | Var=21.4% | Batch=1 | Min A: -2.88e+10 | Max A: 3.90e+10
+    k=  85 | Var=20.3% | Batch=1 | Min A: -2.86e+10 | Max A: 3.86e+10
+    k=  75 | Var=18.8% | Batch=1 | Min A: -2.73e+10 | Max A: 3.53e+10
+    k=  65 | Var=17.0% | Batch=1 | Min A: -3.05e+10 | Max A: 4.00e+10
+    k=  55 | Var=15.7% | Batch=1 | Min A: -3.15e+10 | Max A: 4.04e+10
+    k=  45 | Var=12.1% | Batch=1 | Min A: -2.89e+10 | Max A: 3.16e+10
+    k=  35 | Var=9.6% | Batch=1 | Min A: -2.79e+10 | Max A: 3.07e+10
+    k=  25 | Var=7.4% | Batch=1 | Min A: -2.85e+10 | Max A: 3.29e+10
+    k=  15 | Var=4.0% | Batch=1 | Min A: -2.98e+10 | Max A: 3.48e+10
+    k=   5 | Var=0.8% | Batch=1 | Min A: -2.63e+10 | Max A: 2.91e+10
+  Step 2: Selecting Model (Closest to Ideal Point)...
+    -> Saved removal log to: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44/plots/cluster_9_logCPM_removal_log.csv
+
+  Optimal Cutoff: k=85 (Var=20.3%)
+  Step 3: Calibrating Final Weights (CVX)...
+  > CVX Calibration: Optimizing weights for 85 EFMs...
+    [Success] CVX Converged. Optimal Error: 2.2522e+08
+  --- Final Performance ---
+  Covariance Error: 0.9990
+  Variance Explained: 1.84%
+  Reconstruction Error: 0.998954 (99.90%)
+Smallest value in A: -0.000006  [Loss Analysis] Total EFMs Selected: 85
+  [Loss Analysis] Reactions Kept: 1122 (37.8%) | Lost: 1845
+  Saved full space analysis files for cluster_9_logCPM
+✓ Saved comprehensive results for cluster_9_logCPM
+
+=== COMPREHENSIVE RESULTS SUMMARY ===
+        <strong>ClusterName</strong>         <strong>UniqueRxnsLostCount</strong>    <strong>UniqueRxnsLostCount_Full</strong>    <strong>RevivedRxnsCount_Full</strong>    <strong>OriginalReactions</strong>    <strong>OriginalEFMs</strong>    <strong>ReducedReactions</strong>    <strong>ReducedEFMs</strong>    <strong>ReductionRatio</strong>    <strong>EFMprunedbyL21</strong>    <strong>Original_X_Norm</strong>    <strong>Original_X_Trace</strong>    <strong>Original_X_Det</strong>    <strong>OriginalX_MinEig</strong>    <strong>OriginalX_MaxEig</strong>    <strong>OriginalX_Condition</strong>    <strong>OriginalX_EffectiveRank</strong>    <strong>E_full_Rank</strong>    <strong>E_full_Condition</strong>    <strong>Reduced_X_Norm</strong>    <strong>Reduced_X_Trace</strong>    <strong>Reduced_X_Det</strong>    <strong>ReducedX_MinEig</strong>    <strong>ReducedX_MaxEig</strong>    <strong>ReducedX_Condition</strong>    <strong>ReducedX_EffectiveRank</strong>    <strong>E_final_Rank</strong>    <strong>E_final_Condition</strong>    <strong>Rank_Deficiency_X</strong>    <strong>Rank_Deficiency_E</strong>    <strong>Rank_Ratio</strong>    <strong>DegreesOfFreedom</strong>    <strong>Equations</strong>     <strong>ProblemType</strong>    <strong>ReducedrelativeError</strong>    <strong>ReducedAbsoluteError</strong>    <strong>FullsysRelativeError</strong>    <strong>FullsysAbsoluteError</strong>    <strong>ReducedRelErrorMeanNorm</strong>    <strong>FullsysRelErrorMeanNorm</strong>    <strong>ReducedR2Like</strong>    <strong>FullsysR2Like</strong>    <strong>ReducedRelErrorSpectral</strong>    <strong>FullsysRelErrorSpectral</strong>    <strong>FullsysMahalanobisError</strong>    <strong>ReconstructionPenalty</strong>    <strong>ReconstructionQuality</strong>    <strong>ReducedScaleRatio</strong>    <strong>FullScaleRatio</strong>    <strong>ProjectionError</strong>    <strong>ProjectionError_Original</strong>    <strong>SimpleSolutionError</strong>    <strong>SimpleSolutionError_Original</strong>    <strong>TheoreticalMinError</strong>    <strong>OptimalityRatio</strong>    <strong>E_X_Alignment</strong>    <strong>E_X_Alignment_Original</strong>    <strong>A_Matrix_Norm</strong>    <strong>A_Matrix_Trace</strong>     <strong>A_MinEig</strong>       <strong>A_MaxEig</strong>     <strong>A_Condition</strong>    <strong>A_PositiveDefinite</strong>    <strong>LambdaLasso</strong>    <strong>LambdaRidge</strong>    <strong>Lambda_L21</strong>    <strong>Max_Iterations</strong>    <strong>mean_influence</strong>    <strong>lambda_balance</strong>    <strong>P_full_Rows</strong>    <strong>P_full_Cols</strong>    <strong>P_efm_Rows</strong>    <strong>P_efm_Cols</strong>    <strong>ProjectionType</strong>    <strong>P_full_Rank</strong>    <strong>P_efm_Rank</strong>    <strong>P_full_Orthogonality</strong>
+    <strong>____________________</strong>    <strong>___________________</strong>    <strong>________________________</strong>    <strong>_____________________</strong>    <strong>_________________</strong>    <strong>____________</strong>    <strong>________________</strong>    <strong>___________</strong>    <strong>______________</strong>    <strong>______________</strong>    <strong>_______________</strong>    <strong>________________</strong>    <strong>______________</strong>    <strong>________________</strong>    <strong>________________</strong>    <strong>___________________</strong>    <strong>_______________________</strong>    <strong>___________</strong>    <strong>________________</strong>    <strong>______________</strong>    <strong>_______________</strong>    <strong>_____________</strong>    <strong>_______________</strong>    <strong>_______________</strong>    <strong>__________________</strong>    <strong>______________________</strong>    <strong>____________</strong>    <strong>_________________</strong>    <strong>_________________</strong>    <strong>_________________</strong>    <strong>__________</strong>    <strong>________________</strong>    <strong>__________</strong>    <strong>___________</strong>    <strong>____________________</strong>    <strong>____________________</strong>    <strong>____________________</strong>    <strong>____________________</strong>    <strong>_______________________</strong>    <strong>_______________________</strong>    <strong>_____________</strong>    <strong>_____________</strong>    <strong>_______________________</strong>    <strong>_______________________</strong>    <strong>_______________________</strong>    <strong>_____________________</strong>    <strong>_____________________</strong>    <strong>_________________</strong>    <strong>______________</strong>    <strong>_______________</strong>    <strong>________________________</strong>    <strong>___________________</strong>    <strong>____________________________</strong>    <strong>___________________</strong>    <strong>_______________</strong>    <strong>_____________</strong>    <strong>______________________</strong>    <strong>_____________</strong>    <strong>______________</strong>    <strong>___________</strong>    <strong>__________</strong>    <strong>___________</strong>    <strong>__________________</strong>    <strong>___________</strong>    <strong>___________</strong>    <strong>__________</strong>    <strong>______________</strong>    <strong>______________</strong>    <strong>______________</strong>    <strong>___________</strong>    <strong>___________</strong>    <strong>__________</strong>    <strong>__________</strong>    <strong>______________</strong>    <strong>___________</strong>    <strong>__________</strong>    <strong>____________________</strong>
+
+    {'cluster_0_logCPM'}           1425                      1856                        0                    2328               3186              2328             3186              1                3092           1.4126e+08          6.3331e+08            Inf             2.5297e-09          1.3366e+08           2.1238e+16                   730                 1143           1.6051e+65         1.4126e+08        6.3331e+08            Inf            2.5297e-09        1.3366e+08           2.1238e+16                 730                  1143           1.6051e+65              1598                 1185            0.49098         1.0151e+07       5.4196e+06      1.8729                 25644              3.6223e+12                   25644              3.6223e+12                   79.271                     79.271             -6.576e+08       -6.576e+08                26754                      26754                 2.3968e+20                     0                        1                      25644               25644        7.2983e-15              7.2983e-15                  8.549                       8.549                     539.17                 47.561         0.0086487            0.0086487            7.6409e+06        1.1471e+07        -8.64e-11    7.4408e+06        Inf              true                NaN            NaN           150             100                0                NaN             2328           2328           3186          3186          {'None'}          2328           3186                0          
+    {'cluster_1_logCPM'}           1488                      1909                        0                    2328               3186              2328             3186              1                3108           1.6156e+08          9.2695e+08            Inf            -4.5243e-10          1.4434e+08           2.7879e+16                   715                 1143           1.6051e+65         1.6156e+08        9.2695e+08            Inf           -4.5243e-10        1.4434e+08           2.7879e+16                 715                  1143           1.6051e+65              1613                 1185            0.49098         1.0151e+07       5.4196e+06      1.8729                3150.3              5.0897e+11                  3150.3              5.0897e+11                   10.663                     10.663            -9.9245e+06      -9.9245e+06               2976.1                     2976.1                 4.1274e+19                     0                        1                     3150.3              3150.3        7.3334e-15              7.3334e-15                 7.4885                      7.4885                     471.66                 6.6793         0.0094424            0.0094424            1.2665e+07        1.6589e+07      -1.4071e-10    1.2462e+07        Inf              false               NaN            NaN           150             100                0                NaN             2328           2328           3186          3186          {'None'}          2328           3186                0          
+    {'cluster_2_logCPM'}           1422                      1844                        0                    2328               3186              2328             3186              1                3071           2.0726e+08           8.894e+08            Inf             3.3837e-09          1.9353e+08           3.7545e+16                   706                 1143           1.6051e+65         2.0726e+08         8.894e+08            Inf            3.3837e-09        1.9353e+08           3.7545e+16                 706                  1143           1.6051e+65              1622                 1185            0.49098         1.0151e+07       5.4196e+06      1.8729                 31753               6.581e+12                   31753               6.581e+12                   113.96                     113.96            -1.0082e+09      -1.0082e+09                33910                      33910                 4.1594e+20                     0                        1                      31753               31753         7.238e-15               7.238e-15                 5.8692                      5.8692                      284.3                 111.69         0.0090595            0.0090595            9.1052e+06        1.4748e+07      -5.1424e-10    8.5969e+06        Inf              false               NaN            NaN           150             100                0                NaN             2328           2328           3186          3186          {'None'}          2328           3186                0          
+    {'cluster_3_logCPM'}           1272                      1650                        0                    2328               3186              2328             3186              1                3059           1.9875e+08          6.6765e+08            Inf            -1.3218e-10          1.9162e+08           3.0804e+16                   726                 1143           1.6051e+65         1.9875e+08        6.6765e+08            Inf           -1.3218e-10        1.9162e+08           3.0804e+16                 726                  1143           1.6051e+65              1602                 1185            0.49098         1.0151e+07       5.4196e+06      1.8729            4.9215e+08              9.7813e+16              4.9215e+08              9.7813e+16               1.6489e+06                 1.6489e+06            -2.4221e+17      -2.4221e+17           4.2726e+08                 4.2726e+08                  7.237e+24                     0                        1                 4.9215e+08          4.9215e+08        7.2535e-15              7.2535e-15                  6.115                       6.115                     224.61             2.1911e+06         0.0077418            0.0077418            4.6683e+11        9.4039e+11                0     3.989e+11        Inf              false               NaN            NaN           150             100                0                NaN             2328           2328           3186          3186          {'None'}          2328           3186                0          
+    {'cluster_4_logCPM'}           1439                      1869                        0                    2328               3186              2328             3186              1                3098            1.831e+08          5.1765e+08            Inf             1.3738e-09          1.7939e+08           2.7866e+16                   733                 1143           1.6051e+65          1.831e+08        5.1765e+08            Inf            1.3738e-09        1.7939e+08           2.7866e+16                 733                  1143           1.6051e+65              1595                 1185            0.49098         1.0151e+07       5.4196e+06      1.8729                 12967              2.3742e+12                   12967              2.3742e+12                   41.748                     41.748            -1.6815e+08      -1.6815e+08                10925                      10925                 1.5258e+20                     0                        1                      12967               12967        7.3742e-15              7.3742e-15                 6.6253                      6.6253                     288.26                 44.984         0.0073758            0.0073758            1.2576e+07        1.4713e+07      -1.0375e-10    1.2523e+07        Inf              false               NaN            NaN           150             100                0                NaN             2328           2328           3186          3186          {'None'}          2328           3186                0          
+    {'cluster_5_logCPM'}           1476                      1915                        0                    2328               3186              2328             3186              1                3114           1.2415e+08          3.7164e+08            Inf            -1.2301e-08          1.2182e+08           1.8988e+16                   663                 1143           1.6051e+65         1.2415e+08        3.7164e+08            Inf           -1.2301e-08        1.2182e+08           1.8988e+16                 663                  1143           1.6051e+65              1665                 1185            0.49098         1.0151e+07       5.4196e+06      1.8729                1.0056              1.2484e+08                  1.0056              1.2484e+08                0.0032955                  0.0032955              -0.011252        -0.011252              0.99946                    0.99946                 1.0977e+15                     0                        1                    0.11296             0.11296        7.3781e-15              7.3781e-15                 9.7148                      9.7148                     349.85              0.0028744         0.0069849            0.0069849            5.3946e+06          6.43e+06      -2.4572e-10    5.3573e+06        Inf              false               NaN            NaN           150             100                0                NaN             2328           2328           3186          3186          {'None'}          2328           3186                0          
+    {'cluster_6_logCPM'}           1465                      1890                        0                    2328               3186              2328             3186              1                3090           1.2149e+09          2.7827e+09            Inf             3.9369e-08          1.1878e+09           1.2479e+16                   524                 1143           1.6051e+65         1.2149e+09        2.7827e+09            Inf            3.9369e-08        1.1878e+09           1.2479e+16                 524                  1143           1.6051e+65              1804                 1185            0.49098         1.0151e+07       5.4196e+06      1.8729                5173.7              6.2857e+12                  5173.7              6.2857e+12                   27.264                     27.264            -2.6767e+07      -2.6767e+07               5291.8                     5291.8                 3.6152e+19                     0                        1                     5173.7              5173.7        7.6263e-15              7.6263e-15                 1.4037                      1.4037                     169.14                 30.589         0.0029985            0.0029985            3.3748e+07        5.0425e+07      -8.7182e-10    3.1637e+07        Inf              false               NaN            NaN           150             100                0                NaN             2328           2328           3186          3186          {'None'}          2328           3186                0          
+    {'cluster_7_logCPM'}           1603                      2066                        0                    2328               3186              2328             3186              1                3130           3.6279e+08          1.3491e+09            Inf             -2.508e-08          3.4058e+08           1.7966e+17                   398                 1143           1.6051e+65         3.6279e+08        1.3491e+09            Inf            -2.508e-08        3.4058e+08           1.7966e+17                 398                  1143           1.6051e+65              1929                 1185            0.49098         1.0151e+07       5.4196e+06      1.8729                 96400              3.4973e+13                   96400              3.4973e+13                   371.09                     371.09            -9.2929e+09      -9.2929e+09           1.0203e+05                 1.0203e+05                 2.5345e+21                     0                        1                      96400               96400        7.3962e-15              7.3962e-15                 3.4478                      3.4478                     617.34                 156.15         0.0095537            0.0095537            1.1769e+07        1.8615e+07       -0.0060162    1.1229e+07        Inf              false               NaN            NaN           150             100                0                NaN             2328           2328           3186          3186          {'None'}          2328           3186                0          
+    {'cluster_8_logCPM'}           1453                      1892                        0                    2328               3186              2328             3186              1                3103           5.7506e+08          1.7417e+09            Inf            -1.9473e-08          5.5239e+08            1.443e+17                   354                 1143           1.6051e+65         5.7506e+08        1.7417e+09            Inf           -1.9473e-08        5.5239e+08            1.443e+17                 354                  1143           1.6051e+65              1974                 1185            0.49098         1.0151e+07       5.4196e+06      1.8729                2671.2              1.5361e+12                  2671.2              1.5361e+12                   10.922                     10.922            -7.1355e+06      -7.1355e+06               2780.8                     2780.8                 1.1739e+20                     0                        1                     2671.2              2671.2        7.7293e-15              7.7293e-15                 2.3067                      2.3067                     316.24                 8.4468          0.008999             0.008999            2.5181e+07        3.0562e+07      -1.8497e-10    2.4931e+07        Inf              false               NaN            NaN           150             100                0                NaN             2328           2328           3186          3186          {'None'}          2328           3186                0          
+    {'cluster_9_logCPM'}           1431                      1845                        0                    2328               3186              2328             3186              1                3101           2.2546e+08          9.3638e+08              0            -2.9958e-08           1.878e+08           1.5745e+17                    70                 1143           1.6051e+65         2.2546e+08        9.3638e+08              0           -2.9958e-08         1.878e+08           1.5745e+17                  70                  1143           1.6051e+65              2254                 1185            0.49098         1.0151e+07       5.4196e+06      1.8729                6974.3              1.5724e+12                  6974.3              1.5724e+12                   28.778                     28.778            -4.8642e+07      -4.8642e+07               8010.9                     8010.9                 1.5422e+20                     0                        1                     6974.4              6974.4        7.5977e-15              7.5977e-15                 5.4087                      5.4087                      760.4                  9.172         0.0094002            0.0094002            7.3301e+06        1.4947e+07      -2.4633e-10    5.7835e+06        Inf              false               NaN            NaN           150             100                0                NaN             2328           2328           3186          3186          {'None'}          2328           3186                0          
+
+
+✓ Saved comprehensive summary: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44/all_clusters_summary.csv
+  - 10 clusters
+  - 77 metrics per cluster
+[SUCCESS] Finished COVlux in 2897.09 seconds.
+-----------------------------------------------------------
+
+[3/6] RUNNING: master_comparison_cov
+Project Root Detected (Relative to Script): /Users/benedikthaarscheidt/COVlux
+Targeting COVLUX Results: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44
+MRAS/Covariance Source:   /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/MRAS_outputs
+Expression Source:        /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/mapped_for_benchmarking
+Loading Base Model...
+   [SUCCESS] The pruned model grows! Growth Rate: 74.9613
+
+Cluster (Method)             | Keep  | Lost  | Bio      | LCC%   | AlgConn  | FVA%   | Block | FP     | PhPP  | AA%   | MTA%  | DeadE | Var(X)   | CorrM    | Coh.  | nCC(L) | Sz(L)% | Most_Pruned_Cat               
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Lenght of RH indices: 584 
+cluster_0_logCPM (COVLUX)    | 1111  | 1856  | 61.4628  | 41.9   | 0.0470   | 100.0  | 0     | 182    | 61.4628 | 100   | 100   | 0     | 3.65e+05 | 2.12e+09 | 6.43  | 8     | 99.2   | Purine and Pyrimidine Biosynt 
+cluster_0_logCPM (iMAT)      | 1267  | 1700  | -0.0000  | 45.3   | 0.0296   | 99.9   | 1     | 34     | 0.0000 | 55    | 67    | 22    | 3.10e+05 | 1.78e+09 | 5.81  | 79    | 92.8   | Intracellular demand (1.000)  
+cluster_0_logCPM (FASTCORE)  | 1509  | 1458  | -0.0000  | 57.1   | 0.0359   | 90.3   | 146   | 181    | 0.0000 | 100   | 86    | 11    | 2.95e+05 | 2.42e+09 | 6.76  | 122   | 88.7   | Histidine Metabolism (1.000)  
+Lenght of RH indices: 583 
+cluster_1_logCPM (COVLUX)    | 1058  | 1909  | 61.3976  | 40.4   | 0.0458   | 100.0  | 0     | 169    | 61.3976 | 100   | 100   | 0     | 5.77e+05 | 3.05e+09 | 6.29  | 6     | 99.6   | Metabolite Repair (1.000)     
+cluster_1_logCPM (iMAT)      | 1296  | 1671  | -0.0000  | 46.6   | 0.0386   | 99.9   | 1     | 32     | 0.0000 | 70    | 67    | 21    | 4.85e+05 | 3.19e+09 | 6.49  | 76    | 93.1   | Intracellular demand (1.000)  
+cluster_1_logCPM (FASTCORE)  | 1519  | 1448  | -0.0000  | 57.6   | 0.0408   | 90.1   | 151   | 172    | 0.0000 | 100   | 86    | 12    | 4.71e+05 | 4.25e+09 | 7.40  | 117   | 89.0   | Histidine Metabolism (1.000)  
+Lenght of RH indices: 604 
+cluster_2_logCPM (COVLUX)    | 1123  | 1844  | 61.5308  | 42.3   | 0.0409   | 100.0  | 0     | 184    | 61.5308 | 100   | 100   | 0     | 4.51e+05 | 2.74e+09 | 6.71  | 7     | 99.6   | Methylglyoxal Metabolism (1.0 
+cluster_2_logCPM (iMAT)      | 1216  | 1751  | -0.0000  | 42.9   | 0.0368   | 99.9   | 1     | 33     | 0.0000 | 70    | 62    | 26    | 4.90e+05 | 3.13e+09 | 6.48  | 91    | 91.5   | Intracellular demand (1.000)  
+cluster_2_logCPM (FASTCORE)  | 1507  | 1460  | -0.0000  | 56.8   | 0.0408   | 88.7   | 171   | 179    | 0.0000 | 100   | 90    | 15    | 4.41e+05 | 3.88e+09 | 7.25  | 117   | 88.8   | Folate Metabolism (0.909)     
+Lenght of RH indices: 583 
+cluster_3_logCPM (COVLUX)    | 1317  | 1650  | 61.5309  | 48.9   | 0.0470   | 100.0  | 0     | 234    | 61.5309 | 100   | 100   | 0     | 2.93e+05 | 2.54e+09 | 8.19  | 13    | 98.1   | Histidine Metabolism (0.818)  
+cluster_3_logCPM (iMAT)      | 1291  | 1676  | -0.0000  | 46.1   | 0.0380   | 99.9   | 1     | 34     | 0.0000 | 60    | 52    | 28    | 3.38e+05 | 2.50e+09 | 7.18  | 73    | 92.8   | Intracellular demand (1.000)  
+cluster_3_logCPM (FASTCORE)  | 1480  | 1487  | -0.0000  | 56.1   | 0.0408   | 88.5   | 170   | 167    | 0.0000 | 100   | 86    | 18    | 3.06e+05 | 2.68e+09 | 7.36  | 110   | 89.5   | Valine, Leucine, and Isoleuci 
+Lenght of RH indices: 582 
+cluster_4_logCPM (COVLUX)    | 1098  | 1869  | 61.1533  | 41.6   | 0.0409   | 100.0  | 0     | 165    | 61.1533 | 100   | 100   | 0     | 2.37e+05 | 1.75e+09 | 8.31  | 7     | 99.4   | Methylglyoxal Metabolism (1.0 
+cluster_4_logCPM (iMAT)      | 1209  | 1758  | -0.0000  | 42.8   | 0.0408   | 99.9   | 1     | 28     | 0.0000 | 70    | 62    | 30    | 2.30e+05 | 1.58e+09 | 7.16  | 72    | 93.2   | Intracellular demand (1.000)  
+cluster_4_logCPM (FASTCORE)  | 1492  | 1475  | -0.0000  | 56.6   | 0.0409   | 89.3   | 159   | 178    | 0.0000 | 100   | 90    | 14    | 2.09e+05 | 2.13e+09 | 8.47  | 110   | 89.6   | Folate Metabolism (0.909)     
+Lenght of RH indices: 587 
+cluster_5_logCPM (COVLUX)    | 1052  | 1915  | 61.5308  | 39.9   | 0.0470   | 100.0  | 0     | 172    | 61.5308 | 100   | 100   | 0     | 1.56e+05 | 1.30e+09 | 9.74  | 7     | 99.5   | Metabolite Repair (1.000)     
+cluster_5_logCPM (iMAT)      | 1311  | 1656  | -0.0000  | 46.8   | 0.0272   | 99.9   | 1     | 36     | 0.0000 | 55    | 71    | 20    | 1.51e+05 | 1.47e+09 | 9.50  | 80    | 92.9   | Intracellular demand (1.000)  
+cluster_5_logCPM (FASTCORE)  | 1523  | 1444  | -0.0000  | 57.6   | 0.0369   | 89.8   | 156   | 184    | 0.0000 | 100   | 90    | 9     | 1.46e+05 | 1.89e+09 | 10.55 | 121   | 88.7   | Histidine Metabolism (1.000)  
+Lenght of RH indices: 584 
+cluster_6_logCPM (COVLUX)    | 1077  | 1890  | 60.9955  | 41.1   | 0.0481   | 100.0  | 0     | 173    | 60.9955 | 100   | 100   | 0     | 1.44e+06 | 7.77e+09 | 6.24  | 6     | 99.5   | Valine, Leucine, and Isoleuci 
+cluster_6_logCPM (iMAT)      | 1197  | 1770  | -0.0000  | 41.3   | 0.0408   | 99.9   | 1     | 19     | 0.0000 | 65    | 67    | 31    | 1.41e+06 | 9.89e+09 | 7.34  | 84    | 92.0   | Lipopolysaccharide Biosynthes 
+cluster_6_logCPM (FASTCORE)  | 1482  | 1485  | -0.0000  | 54.8   | 0.0408   | 98.7   | 19    | 185    | 0.0000 | 90    | 71    | 28    | 1.21e+06 | 1.20e+10 | 8.28  | 105   | 89.3   | Murein Biosynthesis (1.000)   
+Lenght of RH indices: 582 
+cluster_7_logCPM (COVLUX)    | 901   | 2066  | 60.4926  | 35.2   | 0.0500   | 100.0  | 0     | 151    | 60.4926 | 100   | 100   | 0     | 8.10e+05 | 4.51e+09 | 7.68  | 5     | 99.6   | Metabolite Repair (1.000)     
+cluster_7_logCPM (iMAT)      | 1043  | 1924  | -0.0000  | 35.2   | 0.0272   | 99.9   | 1     | 17     | 0.0000 | 85    | 57    | 35    | 9.01e+05 | 6.20e+09 | 8.57  | 84    | 92.8   | Intracellular demand (1.000)  
+cluster_7_logCPM (FASTCORE)  | 1361  | 1606  | -0.0000  | 49.9   | 0.0283   | 99.7   | 4     | 167    | 0.0000 | 90    | 71    | 28    | 7.42e+05 | 8.33e+09 | 10.33 | 114   | 89.2   | Murein Biosynthesis (1.000)   
+Lenght of RH indices: 600 
+cluster_8_logCPM (COVLUX)    | 1075  | 1892  | 61.1533  | 41.0   | 0.0470   | 100.0  | 0     | 177    | 61.1533 | 100   | 100   | 0     | 8.52e+05 | 6.61e+09 | 8.87  | 11    | 98.9   | Methylglyoxal Metabolism (1.0 
+cluster_8_logCPM (iMAT)      | 1229  | 1738  | -0.0000  | 43.9   | 0.0365   | 99.9   | 1     | 20     | 0.0000 | 70    | 67    | 22    | 9.68e+05 | 8.40e+09 | 8.89  | 86    | 91.8   | Intracellular demand (1.000)  
+cluster_8_logCPM (FASTCORE)  | 1525  | 1442  | -0.0000  | 57.6   | 0.0359   | 86.4   | 207   | 158    | 0.0000 | 95    | 76    | 12    | 8.18e+05 | 9.96e+09 | 9.86  | 114   | 88.9   | Valine, Leucine, and Isoleuci 
+Lenght of RH indices: 582 
+cluster_9_logCPM (COVLUX)    | 1122  | 1845  | 61.5308  | 42.0   | 0.0506   | 100.0  | 0     | 263    | 61.5308 | 100   | 100   | 0     | 6.08e+05 | 9.01e+09 | 16.52 | 9     | 99.3   | Metabolite Repair (1.000)     
+cluster_9_logCPM (iMAT)      | 926   | 2041  | -0.0000  | 30.6   | 0.0273   | 99.9   | 1     | 26     | 0.0000 | 60    | 38    | 38    | 6.91e+05 | 8.64e+09 | 17.18 | 86    | 92.6   | Folate Metabolism (1.000)     
+cluster_9_logCPM (FASTCORE)  | 1370  | 1597  | -0.0000  | 50.8   | 0.0284   | 99.1   | 13    | 238    | 0.0000 | 90    | 71    | 28    | 5.52e+05 | 1.18e+10 | 19.56 | 113   | 89.4   | Murein Biosynthesis (1.000)   
+
+Done. Saved to FULL_METHOD_COMPARISON_WITH_DUAL_CONN.csv
+
+
+=== SUMMARY REPORT ===
+       <strong>Method</strong>       <strong>Success_Rate</strong>    <strong>Avg_Integrity_AA</strong>    <strong>Avg_Core_MTA</strong>    <strong>Avg_Connectivity_LCC</strong>    <strong>Avg_Robustness_AlgConn</strong>    <strong>Avg_Falsepositives</strong>
+    <strong>____________</strong>    <strong>____________</strong>    <strong>________________</strong>    <strong>____________</strong>    <strong>____________________</strong>    <strong>______________________</strong>    <strong>__________________</strong>
+
+    {'COVLUX'  }        100                100                100               41.43                  0.046431                   187       
+    {'iMAT'    }          0                 66             60.952              42.143                  0.034278                  27.9       
+    {'FASTCORE'}          0               96.5             81.905               55.48                  0.036961                 180.9       
+
+
+=== Generating Visualization Plots ===
+All 10 Figures saved to /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44
+=== Generating Correlation PDF Report (Overlaid) ===
+Correlation PDF saved to /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44/Method_Deletion_Correlations_Overlaid.pdf
+[SUCCESS] Finished master_comparison_cov in 568.17 seconds.
+-----------------------------------------------------------
+
+[4/6] RUNNING: biomass_distance
+Results Source:    /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44
+Covariance Source: /Users/benedikthaarscheidt/COVlux/results/Clustering/Ecoli_eBW4_nFeat2000_Dims7_Res0.6/data_files/MRAS_outputs
+Loading Model...
+
+Cluster              | G_COVlux G_FastCore G_iMAT | V_COVlux V_FastCore V_iMAT | L_COVlux L_FastCore L_iMAT
+---------------------------------------------------------------------------------------------------------
+High: 5.461211e+02, low: 5.888340e+01 
+lenght RH indices: 584 
+cluster_0_logCPM     | 0     47    114   | 67.3  75.9  73.0  | 1856  1459  1717 
+   > Coherence: COV=0.133 | iMAT=0.202 | FAST=0.230
+High: 4.873467e+02, low: 5.267844e+01 
+lenght RH indices: 583 
+cluster_1_logCPM     | 0     46    107   | 62.8  76.6  74.9  | 1909  1449  1644 
+   > Coherence: COV=0.115 | iMAT=0.166 | FAST=0.196
+High: 5.100472e+02, low: 4.165388e+01 
+lenght RH indices: 604 
+cluster_2_logCPM     | 0     59    89    | 59.9  80.2  79.0  | 1844  1461  1737 
+   > Coherence: COV=0.114 | iMAT=0.167 | FAST=0.195
+High: 5.345047e+02, low: 4.455725e+01 
+lenght RH indices: 583 
+cluster_3_logCPM     | 0     66    92    | 67.4  82.0  80.2  | 1650  1486  1681 
+   > Coherence: COV=0.135 | iMAT=0.189 | FAST=0.223
+High: 5.987006e+02, low: 4.371855e+01 
+lenght RH indices: 582 
+cluster_4_logCPM     | 0     60    131   | 66.0  80.8  79.1  | 1869  1477  1761 
+   > Coherence: COV=0.162 | iMAT=0.218 | FAST=0.255
+High: 5.167627e+02, low: 5.625683e+01 
+lenght RH indices: 587 
+cluster_5_logCPM     | 0     50    108   | 55.1  77.9  75.1  | 1915  1447  1700 
+   > Coherence: COV=0.179 | iMAT=0.262 | FAST=0.285
+High: 9.867401e+02, low: 3.071172e+01 
+lenght RH indices: 584 
+cluster_6_logCPM     | 0     85    166   | 80.8  91.5  91.8  | 1890  1498  1826 
+   > Coherence: COV=0.159 | iMAT=0.228 | FAST=0.256
+High: 6.707483e+02, low: 3.574475e+01 
+lenght RH indices: 582 
+cluster_7_logCPM     | 0     135   182   | 58.1  84.7  84.9  | 2066  1617  1875 
+   > Coherence: COV=0.151 | iMAT=0.241 | FAST=0.278
+High: 7.342505e+02, low: 3.951204e+01 
+lenght RH indices: 600 
+cluster_8_logCPM     | 0     57    134   | 60.2  85.1  85.0  | 1892  1446  1726 
+   > Coherence: COV=0.135 | iMAT=0.195 | FAST=0.221
+High: 5.214845e+02, low: 0 
+lenght RH indices: 582 
+cluster_9_logCPM     | 0     133   209   | 72.0  85.2  82.4  | 1845  1620  2046 
+   > Coherence: COV=0.251 | iMAT=0.281 | FAST=0.351
+
+Report saved to: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44/Functional_Gap_and_Variance.pdf
+[SUCCESS] Finished biomass_distance in 98.57 seconds.
+-----------------------------------------------------------
+
+[5/6] RUNNING: analyze_biological_state
+Project Root Detected (Relative to Script): /Users/benedikthaarscheidt/COVlux
+
+Targeting LATEST COVLUX Results: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-21_17-11-44

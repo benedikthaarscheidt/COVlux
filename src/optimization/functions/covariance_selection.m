@@ -5,16 +5,14 @@ function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M, ver
 % 2. PRUNE: Remove weakest EFMs in batches (1% decay) for speed & stability.
 % 3. SELECT: Pick model closest to Ideal Point (or use extracted metrics later).
 % 4. CALIBRATE: Use CVX to enforce final weights.
-
     fprintf('\n=== Covariance Selection (Geometric Batch Pruning) ===\n');
     [n_rxn, n_efm] = size(E);
     
     % --- CONFIGURATION ---
-    K_INIT          = 3000;      % Start with Top 3000
-    MIN_EFMS        = 5;         % Prune down to this number
+    K_INIT          = 4000;      % Start with Top 3000
+    MIN_EFMS        = 0;         % Prune down to this number
     VAR_FLOOR       = 0;         
     fprintf("Sparsity weight: %.2f \n", SPARSITY_WEIGHT);
-
     % =========================================================================
     % 1. PRE-PROCESSING
     % =========================================================================
@@ -25,7 +23,6 @@ function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M, ver
     valid_idx = find(valid_efms);
     E_norm = E_norm(:, valid_idx);
     n_valid = length(valid_idx);
-
     % =========================================================================
     % 2. RANKING (Covariance + Magnitude)
     % =========================================================================
@@ -53,12 +50,12 @@ function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M, ver
     % =========================================================================
     fprintf('  Step 1: Pruning from %d down to %d (1%% batch decay)...\n', length(current_set), MIN_EFMS);
     
-    % Prepare Real-Time Log File
-    removal_log_path = fullfile(plotDir, [clusterName '_removal_log.csv']);
-    fid = fopen(removal_log_path, 'w');
-    fprintf(fid, 'Iteration,Remaining_K,Removed_Global_ID,Var_Explained\n');
-    fclose(fid);
-
+    % Prepare Fast Logging Arrays
+    log_iter = [];
+    log_k = [];
+    log_global_id = [];
+    log_var = [];
+    
     total_var_data = sum(diag(M));
     k_history = [];
     var_history = [];
@@ -70,8 +67,8 @@ function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M, ver
         iter_count = iter_count + 1;
         k = length(current_set);
         
-        % Calculate Batch Size: 1% of current set, minimum 1
-        n_to_remove = max(1, floor(k * 0.01)); 
+        % Calculate Batch Size: 2% of current set, minimum 1
+        n_to_remove = max(1, floor(k * 0.02)); 
         
         % Ensure we don't overshoot MIN_EFMS
         if (k - n_to_remove) < MIN_EFMS
@@ -85,7 +82,7 @@ function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M, ver
         % -------------------------------------------------------------
         try
             % 1. Stabilized Ridge Solve (Lambda=0.01)
-            A_raw = solve_QR_regularized_fast(E_cur, M, 1e-2);
+            A_raw = solve_QR_regularized_new(E_cur, M, 1e-2);
             
             % 2. Project to PSD 
             A_clean = project_to_psd(A_raw);
@@ -137,17 +134,20 @@ function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M, ver
         % Save to history 
         removed_history = [removed_history; batch_ids(:)];
         
-        % Write Batch to Log File
-        fid = fopen(removal_log_path, 'a');
-        for r_idx = batch_ids(:)'
-            fprintf(fid, '%d,%d,%d,%.6f\n', iter_count, k, valid_idx(r_idx), var_cur);
-        end
-        fclose(fid);
+        % Write Batch to Memory Log
+        n_batch = length(batch_ids);
+        log_iter = [log_iter; repmat(iter_count, n_batch, 1)];
+        log_k = [log_k; repmat(k, n_batch, 1)];
+        
+        new_ids = valid_idx(batch_ids);                
+        log_global_id = [log_global_id; new_ids(:)];   
+        
+        log_var = [log_var; repmat(var_cur, n_batch, 1)];
         
         % Prune
         current_set(worst_local_indices) = []; 
         
-        if mod(iter_count, 10) == 0 || n_to_remove == 1
+        if mod(iter_count, 10) == 0 
             fprintf('    k=%4d | Var=%.1f%% | Batch=%d | Min A: %.2e | Max A: %.2e\n', ...
                 k, var_cur*100, n_to_remove, min_val_A, max_val_A);
         end
@@ -185,8 +185,24 @@ function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M, ver
     best_k = x(best_idx_hist);
     best_var = y(best_idx_hist);
     
-    % Reconstruct the Optimal Set using removed_history
-    % We need to find how many EFMs were removed to reach best_k
+    
+    parentDir = fileparts(plotDir); 
+    logDir = fullfile(parentDir, 'log_dir');
+    
+    
+    if ~exist(logDir, 'dir')
+        mkdir(logDir);
+    end
+
+    
+    log_optimal_k = repmat(best_k, length(log_iter), 1);
+    removal_table = table(log_iter, log_k, log_global_id, log_var, log_optimal_k, ...
+        'VariableNames', {'Iteration', 'Remaining_K', 'Removed_Global_ID', 'Var_Explained', 'Optimal_K'});
+    
+    removal_log_path = fullfile(logDir, [clusterName '_removal_log.csv']);
+    writetable(removal_table, removal_log_path);
+    
+    fprintf('    -> Saved removal log to: %s\n', removal_log_path);
     n_removed_total = length(initial_indices) - best_k;
     
     if n_removed_total > 0
