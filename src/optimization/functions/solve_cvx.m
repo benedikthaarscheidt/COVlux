@@ -14,7 +14,7 @@ function A_final = solve_cvx(E_sel, M)
 
     [n_rxn, k] = size(E_sel);
     
-    nugget = 1e-4;
+    nugget = 1;
 
     fprintf('  > CVX Calibration: Optimizing weights for %d EFMs...\n', k);
     

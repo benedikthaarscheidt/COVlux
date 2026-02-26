@@ -1,4 +1,4 @@
-function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M, verbose, plotDir, clusterName, BETA, SPARSITY_WEIGHT)
+function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M,rxnNames, verbose, plotDir, clusterName, BETA, SPARSITY_WEIGHT)
 % COVARIANCE-GUIDED SELECTION (Geometric Batch Pruning)
 %
 % 1. RANK: Prioritize "High Signal" EFMs.

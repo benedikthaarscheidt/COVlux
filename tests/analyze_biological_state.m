@@ -182,7 +182,7 @@ end
 log_dir = fullfile(runDir, 'log_dir');
 if ~exist(log_dir, 'dir'), mkdir(log_dir); end
 
-logFiles = dir(fullfile(plotDir, '*_removal_log.csv'));
+logFiles = dir(fullfile(log_dir, '*_removal_log.csv'));
 if isempty(logFiles)
     error('No removal logs (*_removal_log.csv) found in %s', log_dir);
 end
@@ -190,7 +190,7 @@ fprintf('\nFound %d cluster(s) to analyze.\n', length(logFiles));
 
 for f = 1:length(logFiles)
     clusterName = strrep(logFiles(f).name, '_removal_log.csv', '');
-    logPath = fullfile(plotDir, logFiles(f).name);
+    logPath = fullfile(log_dir, logFiles(f).name);
     
     fprintf('\n\n#######################################################\n');
     fprintf('              ANALYZING: %s\n', upper(clusterName));
@@ -298,7 +298,7 @@ for f = 1:length(logFiles)
         fprintf('  Only 1 EFM left. No pairwise comparison possible.\n');
     end
 
-        % =====================================================================
+    % =====================================================================
     % 5. TRAJECTORY VISUALIZATION (PRUNING CAPACITY)
     % =====================================================================
     fprintf('\n--- Generating Capacity Trajectory Visualizations ---\n');
@@ -357,9 +357,7 @@ for f = 1:length(logFiles)
             end
         end
     end
-    % Remove duplicates (a reaction might match multiple keywords, but we'll keep first assignment)
-    % For simplicity, we assume a reaction belongs to one category; duplicates are unlikely.
-    % If needed, we could prioritize but not necessary here.
+    
     
     % Create a cell array of category data for easy looping
     categories = {
@@ -478,6 +476,187 @@ for f = 1:length(logFiles)
     
     saveas(f1, fullfile(plotDir, sprintf('%s_Subsystem_Trajectory.png', clusterName)));
     close(f1);
+
+    % --- SURVIVORS VS. LOSERS ---
+    
+    
+    % 1. Filter out subsystems that had zero baseline capacity
+    valid_sys_mask = subsys_base > 0;
+    valid_indices = find(valid_sys_mask);
+    valid_final_cap = subsys_cap_traj(valid_sys_mask, end);
+    
+    % 2. Sort by how much capacity they retained at the end
+    [sorted_cap, sort_idx] = sort(valid_final_cap, 'descend');
+    
+    % 3. Define how many to compare (e.g., Top 10 of each)
+    num_compare = min(10, floor(length(sort_idx)/2)); 
+    
+    % Grab the extreme ends of the sorted list
+    survivor_idx_local = sort_idx(1:num_compare);        % Highest final capacity
+    loser_idx_local    = sort_idx(end-num_compare+1:end); % Lowest final capacity
+    
+    survivor_idx_global = valid_indices(survivor_idx_local);
+    loser_idx_global    = valid_indices(loser_idx_local);
+    
+    % 4. Create the Figure
+    f_compare = figure('Name', 'Survivors vs Losers', 'Position', [200, 200, 1100, 600], 'Visible', 'off');
+    hold on; grid on;
+    
+    % 5. Plot the SURVIVORS (Solid, thick, cool colors)
+    survivor_colors = winter(num_compare); % Blues/Greens
+    for i = 1:num_compare
+        idx = survivor_idx_global(i);
+        plot(k_steps, subsys_cap_traj(idx, :), 'LineWidth', 3, 'Color', survivor_colors(i,:), ...
+            'DisplayName', sprintf('[KEPT] %s (%.1f%%)', subsys_names{idx}, subsys_cap_traj(idx, end)));
+    end
+    
+    % 6. Plot the LOSERS (Dashed, thinner, warm colors)
+    loser_colors = autumn(num_compare); % Reds/Oranges/Yellows
+    for i = 1:num_compare
+        % We iterate backwards so the absolute worst loser gets plotted first in deep red
+        idx = loser_idx_global(num_compare - i + 1); 
+        plot(k_steps, subsys_cap_traj(idx, :), 'LineWidth', 2, 'LineStyle', '--', 'Color', loser_colors(i,:), ...
+            'DisplayName', sprintf('[DROPPED] %s (%.1f%%)', subsys_names{idx}, subsys_cap_traj(idx, end)));
+    end
+    
+    % 7. Formatting
+    set(gca, 'XDir', 'reverse'); % K goes from max down to target
+    xlabel('Number of Surviving EFMs (K)', 'FontSize', 12, 'FontWeight', 'bold');
+    ylabel('Remaining Capacity (%)', 'FontSize', 12, 'FontWeight', 'bold');
+    title(sprintf('The Core Shift: Highly Preserved vs. Abandoned Pathways (%s)', upper(clusterName)), 'FontSize', 14);
+    
+    % Add a nice legend outside the plot area
+    legend('Location', 'eastoutside', 'Interpreter', 'none', 'FontSize', 10);
+    
+    % Save it
+    saveas(f_compare, fullfile(plotDir, sprintf('%s_Survivors_vs_Losers.png', clusterName)));
+    close(f_compare);
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % =====================================================================
+    % --- NEW ADDITION: RELATIVE ENRICHMENT & DUAL ANALYSIS ---
+    % =====================================================================
+    fprintf('  Calculating Relative Enrichment metrics...\n');
+    
+    subsys_cap_traj_rel = zeros(length(subsys_names), length(k_steps)); 
+    
+    for t = 1:length(k_steps)
+        step_k = k_steps(t);
+        step_removed = removal_log.Removed_Global_ID(removal_log.Remaining_K > step_k);
+        step_survivors = setdiff(cluster_initial_ids, step_removed);
+        
+        if isempty(step_survivors), continue; end
+        
+        E_step_bin = abs(E_full(:, step_survivors)) > 1e-6;
+        
+        for s = 1:length(subsys_names)
+            rxn_idx = subsys_map(subsys_names{s});
+            % RELATIVE ENRICHMENT (Funnel)
+            efms_using_sys = any(E_step_bin(rxn_idx, :), 1);
+            if step_k > 0
+                subsys_cap_traj_rel(s, t) = (sum(efms_using_sys) / step_k) * 100;
+            end
+        end
+    end
+    
+    % --- DUAL PLOT: SURVIVORS VS. LOSERS (Waterfall vs Funnel) ---
+    fprintf('  Generating Dual Comparison Plot (Pruning vs Enrichment)...\n');
+    
+    valid_sys_mask = subsys_base > 0;
+    valid_indices = find(valid_sys_mask);
+    valid_final_rel = subsys_cap_traj_rel(valid_sys_mask, end);
+    
+    [~, sort_idx_rel] = sort(valid_final_rel, 'descend');
+    num_compare_dual = min(7, floor(length(sort_idx_rel)/2)); 
+    
+    surv_idx_dual  = valid_indices(sort_idx_rel(1:num_compare_dual));
+    loser_idx_dual = valid_indices(sort_idx_rel(end-num_compare_dual+1:end));
+    
+    f_dual = figure('Name', 'Dual Trajectory Analysis', 'Position', [100, 100, 1600, 700], 'Visible', 'off');
+    t_layout = tiledlayout(1, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+    
+    surv_colors_dual = winter(num_compare_dual); 
+    loser_colors_dual = autumn(num_compare_dual);
+    
+    % LEFT TILE: Absolute Pruning (The Waterfall)
+    ax1 = nexttile; hold on; grid on;
+    for i = 1:num_compare_dual
+        idx = surv_idx_dual(i);
+        plot(k_steps, subsys_cap_traj(idx, :), 'LineWidth', 3, 'Color', surv_colors_dual(i,:));
+    end
+    for i = 1:num_compare_dual
+        idx = loser_idx_dual(num_compare_dual - i + 1); 
+        plot(k_steps, subsys_cap_traj(idx, :), 'LineWidth', 2, 'LineStyle', '--', 'Color', loser_colors_dual(i,:));
+    end
+    set(ax1, 'XDir', 'reverse');
+    xlabel(ax1, 'Number of Surviving EFMs (K)', 'FontWeight', 'bold');
+    ylabel(ax1, 'Absolute Remaining Capacity (%)', 'FontWeight', 'bold');
+    title(ax1, 'Physical Pruning', 'FontSize', 14);
+    
+    % RIGHT TILE: Relative Enrichment (The Funnel)
+    ax2 = nexttile; hold on; grid on;
+    for i = 1:num_compare_dual
+        idx = surv_idx_dual(i);
+        plot(k_steps, subsys_cap_traj_rel(idx, :), 'LineWidth', 3, 'Color', surv_colors_dual(i,:), ...
+            'DisplayName', sprintf('[KEPT] %s (%.1f%%)', subsys_names{idx}, subsys_cap_traj_rel(idx, end)));
+    end
+    for i = 1:num_compare_dual
+        idx = loser_idx_dual(num_compare_dual - i + 1); 
+        plot(k_steps, subsys_cap_traj_rel(idx, :), 'LineWidth', 2, 'LineStyle', '--', 'Color', loser_colors_dual(i,:), ...
+            'DisplayName', sprintf('[DROPPED] %s (%.1f%%)', subsys_names{idx}, subsys_cap_traj_rel(idx, end)));
+    end
+    set(ax2, 'XDir', 'reverse');
+    xlabel(ax2, 'Number of Surviving EFMs (K)', 'FontWeight', 'bold');
+    ylabel(ax2, 'Prevalence in Surviving Pool (%)', 'FontWeight', 'bold');
+    title(ax2, 'Biological Enrichment ', 'FontSize', 14);
+    
+    legend(ax2, 'Location', 'eastoutside', 'Interpreter', 'none', 'FontSize', 9);
+    title(t_layout, sprintf('The Core Shift: Highly Preserved vs. Abandoned Pathways (%s)', upper(clusterName)), 'FontSize', 16, 'FontWeight', 'bold');
+    
+    saveas(f_dual, fullfile(plotDir, sprintf('%s_Dual_Trajectory_Analysis.png', clusterName)));
+    close(f_dual);
+
+    % --- NEW PLOT: THE BIGGEST MOVERS (Largest Change in Enrichment) ---
+    fprintf('  Generating "Biggest Movers" Enrichment Plot...\n');
+    
+    % Calculate the absolute change in relative enrichment (Final - Initial)
+    enrichment_change = subsys_cap_traj_rel(:, end) - subsys_cap_traj_rel(:, 1);
+    
+    % Find the biggest growers (positive change) and biggest crashers (negative change)
+    [~, sort_change] = sort(enrichment_change, 'descend');
+    num_movers = 5; % Top 5 up, Top 5 down
+    
+    biggest_gainers = sort_change(1:num_movers);
+    biggest_losers  = sort_change(end-num_movers+1:end);
+    
+    f_movers = figure('Name', 'Biggest Movers', 'Position', [150, 150, 1000, 600], 'Visible', 'off');
+    hold on; grid on;
+    
+    % Plot Gainers (Thick Green/Blue)
+    gainer_colors = winter(num_movers);
+    for i = 1:num_movers
+        idx = biggest_gainers(i);
+        plot(k_steps, subsys_cap_traj_rel(idx, :), 'LineWidth', 3, 'Color', gainer_colors(i,:), ...
+            'DisplayName', sprintf('[SURGED +%.1f%%] %s', enrichment_change(idx), subsys_names{idx}));
+    end
+    
+    % Plot Losers (Thick Red/Orange)
+    loser_colors = autumn(num_movers);
+    for i = 1:num_movers
+        idx = biggest_losers(num_movers - i + 1); % Reverse to get the worst at the bottom
+        plot(k_steps, subsys_cap_traj_rel(idx, :), 'LineWidth', 3, 'LineStyle', '-.', 'Color', loser_colors(i,:), ...
+            'DisplayName', sprintf('[CRASHED %.1f%%] %s', enrichment_change(idx), subsys_names{idx}));
+    end
+    
+    set(gca, 'XDir', 'reverse');
+    xlabel('Number of Surviving EFMs (K)', 'FontSize', 12, 'FontWeight', 'bold');
+    ylabel('Relative Enrichment (%)', 'FontSize', 12, 'FontWeight', 'bold');
+    title(sprintf('The Biggest Movers: Highest Change in Relative Enrichment (%s)', upper(clusterName)), 'FontSize', 14);
+    legend('Location', 'eastoutside', 'Interpreter', 'none', 'FontSize', 10);
+    
+    saveas(f_movers, fullfile(plotDir, sprintf('%s_Biggest_Movers_Enrichment.png', clusterName)));
+    close(f_movers);
+    % =====================================================================
     
     % --- PLOT 2-5: Category Heatmaps ---
     for c = 1:size(categories,1)

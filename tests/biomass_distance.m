@@ -327,7 +327,9 @@ for k = 1:length(files)
 end
 
 %% 5. VISUALIZATION
-outputPdfPath = fullfile(resultsDir, 'Functional_Gap_and_Variance.pdf');
+
+plotdir=fullfile(resultsDir,"plots")
+outputPdfPath = fullfile(plotdir, 'Functional_Gap_and_Variance.pdf');
 T = struct2table(Stats);
 
 fig = figure('Name', 'Gap vs Variance', 'Color', 'w', 'Position', [100 100 1200 1500]);

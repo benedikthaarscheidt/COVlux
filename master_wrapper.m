@@ -5,13 +5,13 @@
 % 4. Biomass Distance -> 5. Biological Analysis -> 6. FBA Comparison
 % =========================================================================
 
-clc;
+
 % Start a flight recorder to capture all command window output
 diary('Pipeline_Run_Log.txt'); 
 
 % 1. Define the relative paths to your scripts
 pipeline_tasks = {
-    fullfile('src', 'mras', 'MRAS_mapping.m');
+    %fullfile('src', 'mras', 'MRAS_mapping.m');
     fullfile('src', 'optimization', 'COVlux.m');
     fullfile('tests', 'master_comparison_cov.m');
     fullfile('tests', 'biomass_distance.m');

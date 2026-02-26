@@ -36,7 +36,7 @@ disp(biomass_structure);
 %% 2) Parameters
 eps_flux      = 1e-7;
 tol_balance   = 1e-8;
-M             = 5e3;
+M             = 1e3;
 badPair_count = 0;
 JACCARD_TAU   = 0.99;              % skip a candidate if Jaccard(similarity) >= 0.95 to any accepted support
 MAX_PER_ANCHOR = 300; % accept up to this many supports per anchor (set Inf for no cap)
@@ -109,13 +109,71 @@ end
 vMin(~isfinite(vMin)) = 0;          % irreversibles: safe floor
 vMax(~isfinite(vMax)) = M;          % cap unbounded
 vMin = max(vMin, 0);                % safety for irreversible split model
+
+
+uptake_idx = find(startsWith(lower(rxnNames), 'ex_') & endsWith(lower(rxnNames), '_b'));
+vMax(uptake_idx) = 0; 
+
+% 2. Open specific minimal substrates (_b)
+minimal_substrates = {'ex_glc__d_e_b', 'ex_nh4_e_b', 'ex_pi_e_b', 'ex_so4_e_b', ...
+                      'ex_o2_e_b', 'ex_h2o_e_b', 'ex_h_e_b', 'ex_k_e_b', ...
+                      'ex_na1_e_b', 'ex_mg2_e_b', 'ex_ca2_e_b', 'ex_cl_e_b', ...
+                      'ex_fe2_e_b', 'ex_fe3_e_b', 'ex_zn2_e_b', 'ex_mn2_e_b', ...
+                      'ex_cu2_e_b', 'ex_cobalt2_e_b', 'ex_mobd_e_b', ...
+                      'ex_ni2_e_b', 'ex_sel_e_b', 'ex_tungs_e_b'};
+
+for i = 1:length(minimal_substrates)
+    idx_m = find(strcmpi(rxnNames, minimal_substrates{i}));
+    if ~isempty(idx_m), vMax(idx_m) = M; end % M is your upper bound constant (5e3)
+end
+
+% 3. Standardize Carbon and Oxygen limits
+glc_idx = find(strcmpi(rxnNames, 'ex_glc__d_e_b') | strcmpi(rxnNames, 'ex_glc_e_b'));
+if ~isempty(glc_idx), vMax(glc_idx) = 1000; end 
+
+o2_idx = find(strcmpi(rxnNames, 'ex_o2_e_b'));
+if ~isempty(o2_idx), vMax(o2_idx) = 1000; end
+
+
 range = [vMin, vMax];
+
+
+for i = 1:length(minimal_substrates)
+    rxn = minimal_substrates{i};
+    % Find the reaction index
+    r_idx = find(strcmpi(rxnNames, rxn));
+    
+    if ~isempty(r_idx)
+        % Get the full column for this reaction
+        col = S(:, r_idx);
+        
+        % Find rows (metabolites) with non-zero entries
+        nz_rows = find(col ~= 0);
+        
+        fprintf('Reaction: %s\n', rxnNames{r_idx});
+        for j = 1:length(nz_rows)
+            m_idx = nz_rows(j);
+            coeff = full(col(m_idx)); % Ensure it prints nicely if sparse
+            
+            % Print the metabolite ID and its coefficient
+            if exist('model_ir', 'var') && isfield(model_ir, 'mets')
+                met_id = model_ir.mets{m_idx};
+                fprintf('  -> Met: %-15s | Coeff: %g\n', met_id, coeff);
+            else
+                fprintf('  -> Met Row: %-5d | Coeff: %g\n', m_idx, coeff);
+            end
+        end
+    else
+        fprintf('Reaction NOT FOUND: %s\n', rxn);
+    end
+end
 
 lb = [range(:,1); zeros(n,1)];
 ub = [range(:,2);  ones(n,1)];
 ub_eff = ub; 
 ub_eff(~isfinite(ub_eff)) = M;
 ub = ub_eff;
+
 %%
 vtype = [ repmat('C',n,1) ; repmat('B',n,1) ];
 
@@ -217,6 +275,9 @@ linModel.vtype      = vtype;
 linModel.modelsense = 'min';
 linModel.obj        = obj;
 
+
+
+
 %% 4) Gurobi parameters
 commonParams = struct( ...
    'FeasibilityTol',1e-9, ...
@@ -308,15 +369,28 @@ if ~exist('skipped','var'), skipped = false(n,1); end
 
 % Timer for periodic saves
 lastSave = tic;
-gap_filling_names = { 'DOXRBCNtex_f'; ...
-    'DOXRBCNtpp'; 'TTRCYCtex_f'; 'NOVBCNtpp'; 'CMtex_f'; 'TTRCYCtpp'; ...
-    'THFAT'; 'FOMETRi'; 'RFAMPtpp'; 'FUSAtex_f'; 'NOVBCNtex_f'; ...
-    'DM_mn2_c'; 'DM_cobalt2_c'; 'ICHORS_copy2_b'; 'GUI1_b'; 'LYStex_b'; ...
-    'EX_fe3hox_un_e_b'; 'EX_fecrm_un_e_b'; 'EX_cpgn_un_e_b'; 'EX_arbtn_e_b' ...
-};
-[found, gap_indices] = ismember(gap_filling_names, rxnNames);
-target_indices = gap_indices(found);
-fprintf('Found %d / %d gap targets in the model.\n', length(target_indices), length(gap_filling_names));
+bio_idx = find(strcmp(model_ir.rxns, 'BIOMASS_Ec_iML1515_WT_75p37M'), 1);
+if isempty(bio_idx), bio_idx = find(contains(model_ir.rxns, 'BIOMASS'), 1); end
+
+% 2. Find all metabolites consumed by Biomass (negative stoichiometric coefficient)
+bio_mets = find(model_ir.S(:, bio_idx) < 0);
+
+target_indices = [];
+for m_idx = bio_mets'
+    % Find Demand (DM_) or Export (_f) reactions that consume this specific metabolite
+    rxns_using_met = find(model_ir.S(m_idx, :) < 0); 
+    
+    for r_idx = rxns_using_met
+        rName = rxnNames{r_idx};
+        if startsWith(rName, 'DM_') || (startsWith(rName, 'EX_') && endsWith(rName, '_f'))
+            target_indices = [target_indices; r_idx];
+        end
+    end
+end
+
+target_indices = unique(target_indices);
+fprintf('Found %d de novo synthesis targets based on Biomass precursors.\n', length(target_indices));
+
 
 %% 6) Enumeration loop (timed checkpoint only; logic unchanged)
 for k_idx = 1:length(target_indices)
@@ -552,64 +626,64 @@ end
 
 
 
-%% Merge Two EFM Datasets
-% 1. Define filenames
-file1 = 'efms_matrix_iML1515_forBiomass.mat';
-file2 = 'efms_matrix_iML1515_2gapfills.mat';
-targetFile = 'efms_matrix_iML1515_lastbit'; % Will save as .mat and .csv
-%'efms_matrix_iML1515_lastbit';
-% 2. Load both
-fprintf('Loading %s...\n', file1);
-D1 = load(file1);
-fprintf('Loading %s...\n', file2);
-D2 = load(file2);
-
-% 3. Check compatibility
-if size(D1.EFM_matrix, 1) ~= size(D2.EFM_matrix, 1)
-    error('Mismatch: File1 has %d rows, File2 has %d rows.', ...
-          size(D1.EFM_matrix, 1), size(D2.EFM_matrix, 1));
-end
-
-% 4. Concatenate Data
-fprintf('Merging datasets...\n');
-EFM_matrix  = [D1.EFM_matrix, D2.EFM_matrix];
-EFM_support = [D1.EFM_support, D2.EFM_support];
-
-% Handle vector fields (ensure they are row vectors for concatenation)
-EFM_anchor  = [D1.EFM_anchor(:); D2.EFM_anchor(:)]'; 
-EFM_supps   = [D1.EFM_supps(:); D2.EFM_supps(:)]';
-
-% Grab static data from the first file
-S        = D1.S;
-rowNames = D1.rowNames;
-rxnNames = D1.rxnNames;
-model_ir = D1.model_ir;
-
-totalEFMs = size(EFM_matrix, 2);
-fprintf('Total merged EFMs: %d\n', totalEFMs);
-
-rawColNames = arrayfun(@(c) sprintf('EFM_%d_anchor_%s', c, rxnNames{EFM_anchor(c)}), ...
-                       1:totalEFMs, 'UniformOutput', false);
-varNames = matlab.lang.makeValidName(rawColNames, 'ReplacementStyle','delete');
-varNames = matlab.lang.makeUniqueStrings(varNames);
-
-% 6. Rebuild the Table
-EFM_table = array2table(EFM_matrix, 'RowNames', rowNames, 'VariableNames', varNames);
-
-% 7. Save Final Files
-% Save .mat
-saveNameMat = [targetFile, '.mat'];
-fprintf('Saving %s...\n', saveNameMat);
-save(saveNameMat, 'EFM_matrix', 'EFM_table', 'rowNames', 'varNames', ...
-     'EFM_support', 'EFM_anchor', 'EFM_supps', 'rxnNames', 'S', 'model_ir');
-
-% Save .csv
-saveNameCsv = [targetFile, '.csv'];
-fprintf('Writing %s...\n', saveNameCsv);
-writetable(EFM_table, saveNameCsv, 'WriteRowNames', true);
-
-fprintf('Done! Merged file saved.\n');
-
+%%% Merge Two EFM Datasets
+%% 1. Define filenames
+%file1 = 'efms_matrix_iML1515_forBiomass.mat';
+%file2 = 'efms_matrix_iML1515_2gapfills.mat';
+%targetFile = 'efms_matrix_iML1515_lastbit'; % Will save as .mat and .csv
+%%'efms_matrix_iML1515_lastbit';
+%% 2. Load both
+%fprintf('Loading %s...\n', file1);
+%D1 = load(file1);
+%fprintf('Loading %s...\n', file2);
+%D2 = load(file2);
+%
+%% 3. Check compatibility
+%if size(D1.EFM_matrix, 1) ~= size(D2.EFM_matrix, 1)
+%    error('Mismatch: File1 has %d rows, File2 has %d rows.', ...
+%          size(D1.EFM_matrix, 1), size(D2.EFM_matrix, 1));
+%end
+%
+%% 4. Concatenate Data
+%fprintf('Merging datasets...\n');
+%EFM_matrix  = [D1.EFM_matrix, D2.EFM_matrix];
+%EFM_support = [D1.EFM_support, D2.EFM_support];
+%
+%% Handle vector fields (ensure they are row vectors for concatenation)
+%EFM_anchor  = [D1.EFM_anchor(:); D2.EFM_anchor(:)]'; 
+%EFM_supps   = [D1.EFM_supps(:); D2.EFM_supps(:)]';
+%
+%% Grab static data from the first file
+%S        = D1.S;
+%rowNames = D1.rowNames;
+%rxnNames = D1.rxnNames;
+%model_ir = D1.model_ir;
+%
+%totalEFMs = size(EFM_matrix, 2);
+%fprintf('Total merged EFMs: %d\n', totalEFMs);
+%
+%rawColNames = arrayfun(@(c) sprintf('EFM_%d_anchor_%s', c, rxnNames{EFM_anchor(c)}), ...
+%                       1:totalEFMs, 'UniformOutput', false);
+%varNames = matlab.lang.makeValidName(rawColNames, 'ReplacementStyle','delete');
+%varNames = matlab.lang.makeUniqueStrings(varNames);
+%
+%% 6. Rebuild the Table
+%EFM_table = array2table(EFM_matrix, 'RowNames', rowNames, 'VariableNames', varNames);
+%
+%% 7. Save Final Files
+%% Save .mat
+%saveNameMat = [targetFile, '.mat'];
+%fprintf('Saving %s...\n', saveNameMat);
+%save(saveNameMat, 'EFM_matrix', 'EFM_table', 'rowNames', 'varNames', ...
+%     'EFM_support', 'EFM_anchor', 'EFM_supps', 'rxnNames', 'S', 'model_ir');
+%
+%% Save .csv
+%saveNameCsv = [targetFile, '.csv'];
+%fprintf('Writing %s...\n', saveNameCsv);
+%writetable(EFM_table, saveNameCsv, 'WriteRowNames', true);
+%
+%fprintf('Done! Merged file saved.\n');
+%
 %% — Helpers —
 function x = getSolutionVector(sol)
     if isfield(sol,'x')   && ~isempty(sol.x)
@@ -899,7 +973,7 @@ function save_checkpoint_atomic(targetFile, model_sig)
     save(tmp, '-struct', 'Sstruct', '-v7.3');   
     movefile(tmp, targetFile, 'f');             
     fprintf('[checkpoint] %s\n', targetFile)
-en
+end
 
 function load_checkpoint_state(fname)
 % Load all fields from checkpoint into caller workspace.

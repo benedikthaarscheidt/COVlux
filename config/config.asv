@@ -1,0 +1,56 @@
+{
+    "paths": {
+        "data_dir": "data",
+        "results_dir": "results",
+        "models_dir": "data/models",
+        "datasets_dir": "data/datasets"
+    },
+    "params": {
+        "snr_threshold": 5,
+        "flux_noise_floor": 1e-9,
+        "lambda_l21": 150,
+        "lambda_qr": 1e-7,
+        "max_iters": 100,
+        "use_big_basis": true,
+        "use_conditions": false,
+        "input_clustering_folder": "GSE217715_D1_lib1_nFeat2000_Dims8_Res0.5",
+        "verbose":true,
+        "n_features": 2000,
+        "pca_dims": [1, 2, 3, 4, 5, 6, 7,8],
+        "cluster_res": 0.5,
+        "min_cells_qc": 50,
+        "min_features_qc": 100,
+        "genes_per_cell_qc": 10,
+        "min_cluster_size": 10,
+        "project_name":"GSE217715_D1_lib1",
+        "div_by_reactions":true,
+        "second_moment_mat":true,
+        "use_smart_mapping":true,
+        "mean_influence" : 0,
+        "biomassEFMs":true
+
+    },
+    "clustering": {
+        "input_files": [
+            {   
+                "id":"GSE217715_D1_lib1",
+                "expr_path": "E_coli/GSE217715_D1_lib1.csv"
+
+            }
+        ]
+    },
+
+
+    
+
+    "model": {
+        "name": "E_coli",
+        "efm_basis_files": [
+            "E_coli/efms/efms_matrix_iML1515_pruned_permissive_biomassrm_loopless_v5_higher_cover.mat",
+            "E_coli/efms/efms_matrix_iML1515_pruned_permissive_biomassrm_loopless_v5.mat",
+            "E_coli/efms/efms_NEW_iML1515_pruned_permissive_biomassrm_loopless_v5.mat",
+            "E_coli/efms/efms_matrix_iML1515_lastbit.mat"
+        ],
+        "model_file": "E_coli/iML1515_pruned_permissive_biomass_loopless_v6.mat"
+    }
+}

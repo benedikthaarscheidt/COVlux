@@ -545,7 +545,7 @@ for m = 1:length(methods)
     scatter(T_viz.LostCount(idx), T_viz.Lost_LargestComponentPct(idx), 60, colors(m,:), 'filled', 'MarkerFaceAlpha', 0.6);
 end
 xlabel('Deleted Reactions'); ylabel('Largest Chunk (%)'); title('Deletion Module Size'); grid on; legend(methods, 'Location', 'best');
-saveas(f3, fullfile(resultsDir, 'Fig3_Modularity_Mechanics.png'));
+saveas(f3, fullfile(plotsDir, 'Fig3_Modularity_Mechanics.png'));
 % --- FIGURE 4: COMPREHENSIVE METRICS ---
 f4 = figure('Position', [100, 100, 1600, 1000], 'Name', 'All Metrics vs Deleted Count', 'Color', 'w', 'Visible', 'off');
 t4 = tiledlayout(3, 4, 'TileSpacing', 'compact', 'Padding', 'compact');

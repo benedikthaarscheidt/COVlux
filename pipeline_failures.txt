@@ -1,0 +1,3 @@
+[23-Feb-2026 14:07:55] Script: COVlux | Error: Unable to find file or directory '/Users/benedikthaarscheidt/COVlux/data/models/E_coli/efms/efms_matrix_iML1515_full_merged.mat'.
+[23-Feb-2026 14:11:03] Script: COVlux | Error: Unrecognized field name "rxnNames".
+[23-Feb-2026 17:28:40] Script: analyze_biological_state | Error: No removal logs (*_removal_log.csv) found in /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-23_15-41-25/log_dir

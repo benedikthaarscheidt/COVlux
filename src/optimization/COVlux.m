@@ -35,6 +35,7 @@ div_by_reactions = config.params.div_by_reactions;
 mean_influence  = config.params.mean_influence  ;
 fprintf("DIV by reactions??: %d \n",div_by_reactions)
 second_moment_mat= config.params.second_moment_mat;
+biomassEFMs= config.params.biomassEFMs;
 
 % Additional Hardcoded Params
 reduce_colinearity    = false;
@@ -129,6 +130,31 @@ else
     E_combined_raw = [[res1; flux1(idx1,:)], ...
                       [res2; flux2(idx2,:)], ...
                       [res4; flux4(idx4,:)]];
+end
+
+if ~biomassEFMs
+    fprintf('biomassEFMs flag is FALSE: Filtering out Biomass EFMs...\n');
+    
+    % 1. Find indices of all reactions containing "BIOMASS"
+    bio_rxn_idx = find(contains(string(rxnE), 'BIOMASS', 'IgnoreCase', true));
+    
+    if ~isempty(bio_rxn_idx)
+        % 2. Check which EFMs have active flux for these reactions
+        % (+1 because row 1 in E_combined_raw is the residual)
+        bio_efm_mask = any(abs(E_combined_raw(bio_rxn_idx + 1, :)) > 1e-6, 1);
+        
+        % 3. Remove those EFMs from the raw matrix
+        E_combined_raw(:, bio_efm_mask) = [];
+        
+        fprintf('Removed %d EFMs containing BIOMASS. %d EFMs remaining.\n', sum(bio_efm_mask), size(E_combined_raw, 2));
+    else
+        fprintf('No BIOMASS reactions found in rxnE. Skipping filter.\n');
+    end
+else 
+    bio_rxn_idx = find(contains(string(rxnE), 'BIOMASS', 'IgnoreCase', true));
+    bio_efm_mask = any(abs(E_combined_raw(bio_rxn_idx + 1, :)) > 1e-6, 1);
+    fprintf('EFM set contains %d EFMs containing BIOMASS reactions.\n', sum(bio_efm_mask));
+
 end
 
 % Quality Control (Filter Noise)
@@ -288,7 +314,7 @@ for k = 1:numel(files)
     %[A_opt_QR, E_red, L] = covlux_symmetric_pipeline_mean(E_final, X_final, mu_final, lambda_qr, lambda_l21, max_iters, mean_influence, protected_idx, plotDir, clusterName,verbose,div_by_reactions);
     %[A_opt_QR, E_red, L] = covlux_symmetric_pipeline_mean_lasso(E_final, X_final, mu_final, lambda_qr, lambda_l21, max_iters, mean_influence, protected_idx, plotDir, clusterName,verbose,div_by_reactions);
     %[A_opt_QR, E_red, L, metrics]= solve_weighted_lasso_covariance(E_final, X_final, verbose, plotDir, clusterName);
-    [A_opt_QR, E_red, L, metrics]= covariance_selection(E_final, X_final, verbose, plotDir, clusterName,mean_influence,lambda_l21);
+    [A_opt_QR, E_red, L, metrics]= covariance_selection(E_final, X_final,rxnNames, verbose, plotDir, clusterName,mean_influence,lambda_l21);
     tolerance = 1e-9; 
     
     efm_norms_local = sqrt(sum(E_final.^2, 1));
@@ -308,8 +334,9 @@ for k = 1:numel(files)
     
     variances = diag(A_full);
     selected_efm_idx = find(variances > 1e-9);
-   
-   
+    
+   E_red=E_final(:,selected_efm_idx);
+   plot_efm_length_distribution(E_red, rxnNames, plotDir, clusterName)
     X_recon_reduced = X_recon_full;  
     
     cluster_metrics = compute_and_save_cluster_metrics(...

@@ -16,9 +16,11 @@ function cluster_metrics = compute_and_save_cluster_metrics(resultsDir, clusterN
     
     
     if ~isempty(E_original_full) && ~isempty(rxn_names_full)
-        
+        saveDir=fullfile(resultsDir,"plots");
         [num_lost_full, lost_names_full, pruned_efm_idx_full, revived_names_full] = ...
             compute_unique_reaction_loss(A_opt_QR, E_final, mu_final_reduced, E_original_full, rxn_names_full,true);
+
+        
         
         % Save full space files
         save_full_space_analysis(resultsDir, clusterName, ...
