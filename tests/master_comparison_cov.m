@@ -93,6 +93,12 @@ minimal_substrates = {'ex_glc__d_e_b', 'ex_glc_e_b', 'ex_o2_e_b', 'ex_h2o_e_b', 
                       'ex_glyc_e_b', 'ex_pyr_e_b', 'ex_ade_e_b', 'ex_hxan_e_b', 'ex_ura_e_b', ...
                       'ex_glu__L_e_b', 'ex_asp__L_e_b', 'ex_ser__L_e_b','ex_leu__L_e_b'};
 
+minimal_substrates = {'ex_glc__d_e_b', 'ex_nh4_e_b', 'ex_pi_e_b', 'ex_so4_e_b', ...
+                      'ex_o2_e_b', 'ex_h2o_e_b', 'ex_h_e_b', 'ex_k_e_b', ...
+                      'ex_na1_e_b', 'ex_mg2_e_b', 'ex_ca2_e_b', 'ex_cl_e_b', ...
+                      'ex_fe2_e_b', 'ex_fe3_e_b', 'ex_zn2_e_b', 'ex_mn2_e_b', ...
+                      'ex_cu2_e_b', 'ex_cobalt2_e_b', 'ex_mobd_e_b', ...
+                      'ex_ni2_e_b', 'ex_sel_e_b', 'ex_tungs_e_b'};
 %% 2. LOAD MODEL & PREPARE SUBSYSTEMS
 fprintf('Loading Base Model...\n');
 m_struct = load(modelPath);
@@ -562,65 +568,98 @@ fprintf('\n\n=== SUMMARY REPORT (by Method) ===\n');
 disp(prof_report);
 writetable(prof_report, fullfile(resultsDir, 'SUMMARY_REPORT_BY_METHOD.csv'));
 
-%% 8. VISUALIZATION (ALL 10 FIGURES) - UPDATED FOR BOTH MEDIA
-fprintf('\n=== Generating Visualization Plots (Both Media) ===\n');
+%% 8. VISUALIZATION (ALL 10 FIGURES) - SMART MEDIA FILTERING
+fprintf('\n=== Generating Visualization Plots (Smart Media Filtering) ===\n');
 
-% Create long format for plotting (one row per method per medium)
+% =========================================================================
+% 1. BUILD THE LONG TABLE (T_long)
+% =========================================================================
 T_results = struct2table(stats_out);
 T_long = table();
 for med = {'max', 'min'}
     med_name = med{1};
+    T_med = T_results;
     if strcmp(med_name, 'max')
-        T_med = T_results;
         T_med.Biomass = T_med.Biomass_max;
-        T_med.AA = T_med.AA_max;
-        T_med.MTA = T_med.MTA_max;
+        T_med.AA      = T_med.AA_max;
+        T_med.MTA     = T_med.MTA_max;
     else
-        T_med = T_results;
         T_med.Biomass = T_med.Biomass_min;
-        T_med.AA = T_med.AA_min;
-        T_med.MTA = T_med.MTA_min;
+        T_med.AA      = T_med.AA_min;
+        T_med.MTA     = T_med.MTA_min;
     end
     T_med.Media = repmat({med_name}, height(T_med), 1);
     T_long = [T_long; T_med];
 end
 T_long.Media = categorical(T_long.Media);
 
-% Pre-calculations (for metrics that depend on AA/MTA)
-T_long.TotalCount = T_long.KeptCount + T_long.LostCount;
+% =========================================================================
+% 2. PRE-CALCULATIONS (Done on T_long to ensure all columns exist)
+% =========================================================================
+T_long.TotalCount  = T_long.KeptCount + T_long.LostCount;
 T_long.PruningRate = T_long.LostCount ./ T_long.TotalCount;
-T_long.FragRatio = T_long.Lost_NumComponents ./ (T_long.LostCount + eps);
+T_long.FragRatio   = T_long.Lost_NumComponents ./ (T_long.LostCount + eps);
 
-Yield_AA = T_long.AA / 100;
-T_long.F_AA = 2 * (Yield_AA .* T_long.PruningRate) ./ (Yield_AA + T_long.PruningRate + eps);
+% --- Yields for F-Scores ---
+Yield_AA  = T_long.AA / 100;
 Yield_MTA = T_long.MTA / 100;
-T_long.F_MTA = 2 * (Yield_MTA .* T_long.PruningRate) ./ (Yield_MTA + T_long.PruningRate + eps);
 Yield_LCC = T_long.LCC_Pct / 100;
-T_long.F_LCC = 2 * (Yield_LCC .* T_long.PruningRate) ./ (Yield_LCC + T_long.PruningRate + eps);
+Yield_Bio = T_long.Biomass ./ (max(T_long.Biomass) + eps);
 Yield_Mod = max(0, 1 - T_long.FragRatio);
+
+% --- F-Scores ---
+T_long.F_AA  = 2 * (Yield_AA .* T_long.PruningRate)  ./ (Yield_AA + T_long.PruningRate + eps);
+T_long.F_MTA = 2 * (Yield_MTA .* T_long.PruningRate) ./ (Yield_MTA + T_long.PruningRate + eps);
+T_long.F_LCC = 2 * (Yield_LCC .* T_long.PruningRate) ./ (Yield_LCC + T_long.PruningRate + eps);
+T_long.F_Bio = 2 * (Yield_Bio .* T_long.PruningRate) ./ (Yield_Bio + T_long.PruningRate + eps);
 T_long.F_Mod = 2 * (Yield_Mod .* T_long.PruningRate) ./ (Yield_Mod + T_long.PruningRate + eps);
 
+% --- Normalized Structural F-scores ---
+maxVar = max(T_long.AvgVariance) + eps;
+T_long.F_Var = 2 * ((T_long.AvgVariance ./ maxVar) .* T_long.PruningRate) ./ ((T_long.AvgVariance ./ maxVar) + T_long.PruningRate + eps);
+
+maxCC = max(T_long.Lost_NumComponents) + eps;
+T_long.F_nCC = 2 * ((1 - (T_long.Lost_NumComponents ./ maxCC)) .* T_long.PruningRate) ./ ((1 - (T_long.Lost_NumComponents ./ maxCC)) + T_long.PruningRate + eps);
+
+% --- Efficiencies (Kept) ---
 T_long.Eff_Kept_LCC = T_long.LCC_Pct ./ T_long.KeptCount;
 T_long.Eff_Kept_AA  = T_long.AA ./ T_long.KeptCount;
 T_long.Eff_Kept_MTA = T_long.MTA ./ T_long.KeptCount;
 T_long.Eff_Kept_Mod = T_long.FragRatio ./ T_long.KeptCount;
 
+% --- Efficiencies (Deleted) ---
 T_long.Eff_Del_LCC = T_long.LCC_Pct ./ (T_long.LostCount + eps);
 T_long.Eff_Del_AA  = T_long.AA ./ (T_long.LostCount + eps);
 T_long.Eff_Del_MTA = T_long.MTA ./ (T_long.LostCount + eps);
 T_long.Eff_Del_Mod = T_long.FragRatio ./ (T_long.LostCount + eps);
 
-% Colors for methods (COVLUX, FASTCORE, iMAT)
+% =========================================================================
+% 3. CREATE T_UNIQUE
+% =========================================================================
+% Extract only the 'max' rows. Because we do this AFTER all calculations, 
+% T_unique safely inherits every single column (including .Method).
+T_unique = T_long(T_long.Media == 'max', :);
+
+% =========================================================================
+% 4. CONSTANTS FOR PLOTTING
+% =========================================================================
+% List of functional variables that require the media split
+media_dep_vars = {'AA', 'MTA', 'Biomass', 'PhPP_Avg', ...
+                  'F_AA', 'F_MTA', 'F_Bio', ...
+                  'Eff_Kept_AA', 'Eff_Kept_MTA', ...
+                  'Eff_Del_AA', 'Eff_Del_MTA'};
+
+% Colors and Labels
 colors_method = [
     0      0.4470 0.7410;   % COVLUX (Blue)
     0.9290 0.6940 0.1250;   % FASTCORE (Yellow)
     0.8500 0.3250 0.0980    % iMAT (Red)
 ];
 methods_list = unique(T_long.Method);
-media_list = categories(T_long.Media);
-plotsDir = fullfile(resultsDir, 'plots_both_media');
-if ~exist(plotsDir, 'dir'), mkdir(plotsDir); end
+media_list   = categories(T_long.Media);
 
+plotsDir = fullfile(resultsDir, 'plots');
+if ~exist(plotsDir, 'dir'), mkdir(plotsDir); end
 % --- FIGURE 1: TOPOLOGY BOXPLOTS ---
 f1 = figure('Position', [100, 100, 1200, 800], 'Name', 'Topology Analysis', 'Color', 'w', 'Visible', 'off');
 t = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
@@ -632,95 +671,90 @@ title(t, 'Fig 1: Topological Analysis (Media shown for completeness)');
 saveas(f1, fullfile(plotsDir, 'Fig1_Topology_Boxplots.png'));
 close(f1);
 
-% --- FIGURE 2: METRICS VS DELETION SIZE (SCATTER) ---
+% =========================================================================
+% FIGURE 2: METRICS VS DELETION SIZE (SCATTER)
+% =========================================================================
 f2 = figure('Position', [150, 150, 1400, 900], 'Name', 'Metrics vs Deletion Size', 'Color', 'w', 'Visible', 'off');
 t2 = tiledlayout(2, 3, 'TileSpacing', 'compact', 'Padding', 'compact');
 metrics_to_plot = {'Alg_Connectivity', 'LCC_Pct', 'Lost_NumComponents', 'AA', 'Falsepositives', 'Biomass'};
-titles_plot = {'Kept Connectivity', 'Kept Integrity (LCC)', 'Deleted Components', 'Amino Acid Yield', 'False Positives', 'Biomass Prod.'};
-
-% Pre-create legend entries (method + media)
-leg_entries = {};
-for m = 1:length(methods_list)
-    for med = 1:length(media_list)
-        leg_entries{end+1} = sprintf('%s (%s)', methods_list{m}, media_list{med});
-    end
-end
+titles_plot = {'Kept Connectivity', 'Kept Integrity LCC', 'Deleted Components', 'Amino Acid Yield ', 'False Positives', 'Biomass Prod.'};
 
 for i = 1:length(metrics_to_plot)
     nexttile; hold on;
+    is_dep = ismember(metrics_to_plot{i}, media_dep_vars);
+    
     for m = 1:length(methods_list)
-        for med = 1:length(media_list)
-            idx = strcmp(T_long.Method, methods_list{m}) & (T_long.Media == media_list{med});
-            if any(idx)
-                marker = (med==1)*'o' + (med==2)*'s'; % maximal = circle, minimal = square
-                scatter(T_long.LostCount(idx), T_long.(metrics_to_plot{i})(idx), 40, ...
-                    colors_method(m,:), marker, 'filled', 'MarkerFaceAlpha', 0.6, ...
-                    'DisplayName', sprintf('%s (%s)', methods_list{m}, media_list{med}));
+        if is_dep
+            % Functional: Split by media
+            for med = 1:length(media_list)
+                idx = strcmp(T_long.Method, methods_list{m}) & (T_long.Media == media_list{med});
+                if med == 1, m_shape = 'o'; else, m_shape = 's'; end
+                scatter(T_long.LostCount(idx), T_long.(metrics_to_plot{i})(idx), 'SizeData', 40, 'Marker', m_shape, 'MarkerEdgeColor', colors_method(m,:), 'MarkerFaceColor', colors_method(m,:), 'MarkerFaceAlpha', 0.6, 'DisplayName', sprintf('%s (%s)', methods_list{m}, media_list{med}));
             end
+        else
+            % Structural: No media split
+            idx = strcmp(T_unique.Method, methods_list{m});
+            scatter(T_unique.LostCount(idx), T_unique.(metrics_to_plot{i})(idx), 'SizeData', 40, 'Marker', 'o', 'MarkerEdgeColor', colors_method(m,:), 'MarkerFaceColor', colors_method(m,:), 'MarkerFaceAlpha', 0.6, 'DisplayName', methods_list{m});
         end
     end
-    xlabel('Number of DELETED Reactions'); ylabel(metrics_to_plot{i}); title(titles_plot{i}); grid on;
-    if i == 1 % only show legend in first subplot to avoid repetition
-        legend('Location', 'best', 'FontSize', 8);
-    end
+    xlabel('Number of DELETED Reactions'); ylabel(metrics_to_plot{i}, 'Interpreter', 'none'); title(titles_plot{i}); grid on;
+    if i == 1, legend('Location', 'best', 'FontSize', 8); end
 end
-% Add a global title
-title(t2, 'Fig 2: Impact of Deletion Magnitude (○ maximal, □ minimal)');
-saveas(f2, fullfile(plotsDir, 'Fig2_Metrics_vs_DeletionSize.png'));
-close(f2);
+title(t2, 'Fig 2: Impact of Deletion Magnitude (○ maximal, □ minimal for functional)');
+saveas(f2, fullfile(plotsDir, 'Fig2_Metrics_vs_DeletionSize.png')); close(f2);
 
-% --- FIGURE 3: MODULARITY MECHANICS ---
+% =========================================================================
+% FIGURE 3: MODULARITY MECHANICS (Strictly Structural)
+% =========================================================================
 f3 = figure('Position', [150, 150, 1400, 600], 'Name', 'Modularity vs Deletion Size', 'Color', 'w', 'Visible', 'off');
 t3 = tiledlayout(1, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+% Panel 1: Frag Ratio
 nexttile; hold on;
 for m = 1:length(methods_list)
-    for med = 1:length(media_list)
-        idx = strcmp(T_long.Method, methods_list{m}) & (T_long.Media == media_list{med});
-        if any(idx)
-            marker = (med==1)*'o' + (med==2)*'s';
-            scatter(T_long.LostCount(idx), T_long.FragRatio(idx), 60, colors_method(m,:), marker, 'filled', 'MarkerFaceAlpha', 0.6, ...
-                'DisplayName', sprintf('%s (%s)', methods_list{m}, media_list{med}));
-        end
-    end
+    idx = strcmp(T_unique.Method, methods_list{m});
+    scatter(T_unique.LostCount(idx), T_unique.FragRatio(idx), 'SizeData', 60, 'Marker', 'o', 'MarkerEdgeColor', colors_method(m,:), 'MarkerFaceColor', colors_method(m,:), 'MarkerFaceAlpha', 0.6, 'DisplayName', methods_list{m});
 end
 xlabel('Deleted Reactions'); ylabel('Fragmentation Ratio'); title('Deletion Chaos vs Size'); grid on; legend('Location','best');
+
+% Panel 2: Largest Chunk
 nexttile; hold on;
 for m = 1:length(methods_list)
-    for med = 1:length(media_list)
-        idx = strcmp(T_long.Method, methods_list{m}) & (T_long.Media == media_list{med});
-        if any(idx)
-            marker = (med==1)*'o' + (med==2)*'s';
-            scatter(T_long.LostCount(idx), T_long.Lost_LargestComponentPct(idx), 60, colors_method(m,:), marker, 'filled', 'MarkerFaceAlpha', 0.6, ...
-                'DisplayName', sprintf('%s (%s)', methods_list{m}, media_list{med}));
-        end
-    end
+    idx = strcmp(T_unique.Method, methods_list{m});
+    scatter(T_unique.LostCount(idx), T_unique.Lost_LargestComponentPct(idx), 'SizeData', 60, 'Marker', 'o', 'MarkerEdgeColor', colors_method(m,:), 'MarkerFaceColor', colors_method(m,:), 'MarkerFaceAlpha', 0.6, 'DisplayName', methods_list{m});
 end
 xlabel('Deleted Reactions'); ylabel('Largest Chunk (%)'); title('Deletion Module Size'); grid on; legend('Location','best');
-saveas(f3, fullfile(plotsDir, 'Fig3_Modularity_Mechanics.png'));
-close(f3);
+title(t3, 'Fig 3: Modularity Mechanics');
+saveas(f3, fullfile(plotsDir, 'Fig3_Modularity_Mechanics.png')); close(f3);
 
-% --- FIGURE 4: COMPREHENSIVE METRICS ---
+% =========================================================================
+% FIGURE 4: COMPREHENSIVE METRICS
+% =========================================================================
 f4 = figure('Position', [100, 100, 1600, 1000], 'Name', 'All Metrics vs Deleted Count', 'Color', 'w', 'Visible', 'off');
 t4 = tiledlayout(3, 4, 'TileSpacing', 'compact', 'Padding', 'compact');
 all_metrics = {'Biomass', 'AA', 'MTA', 'PhPP_Avg', 'Alg_Connectivity', 'LCC_Pct', 'Falsepositives', 'DeadEnd_Metabolites', 'AvgVariance', 'CorrelationMass', 'FragRatio', 'MostPrunedScore'};
+
 for i = 1:length(all_metrics)
     nexttile; hold on;
+    is_dep = ismember(all_metrics{i}, media_dep_vars);
+    
     for m = 1:length(methods_list)
-        for med = 1:length(media_list)
-            idx = strcmp(T_long.Method, methods_list{m}) & (T_long.Media == media_list{med});
-            if any(idx)
-                marker = (med==1)*'o' + (med==2)*'s';
-                scatter(T_long.LostCount(idx), T_long.(all_metrics{i})(idx), 30, colors_method(m,:), marker, 'filled', 'MarkerFaceAlpha', 0.5, ...
-                    'DisplayName', sprintf('%s (%s)', methods_list{m}, media_list{med}));
+        if is_dep
+            for med = 1:length(media_list)
+                idx = strcmp(T_long.Method, methods_list{m}) & (T_long.Media == media_list{med});
+                if med == 1, m_shape = 'o'; else, m_shape = 's'; end
+                scatter(T_long.LostCount(idx), T_long.(all_metrics{i})(idx), 'SizeData', 30, 'Marker', m_shape, 'MarkerEdgeColor', colors_method(m,:), 'MarkerFaceColor', colors_method(m,:), 'MarkerFaceAlpha', 0.5, 'DisplayName', sprintf('%s (%s)', methods_list{m}, media_list{med}));
             end
+        else
+            idx = strcmp(T_unique.Method, methods_list{m});
+            scatter(T_unique.LostCount(idx), T_unique.(all_metrics{i})(idx), 'SizeData', 30, 'Marker', 'o', 'MarkerEdgeColor', colors_method(m,:), 'MarkerFaceColor', colors_method(m,:), 'MarkerFaceAlpha', 0.5, 'DisplayName', methods_list{m});
         end
     end
-    xlabel('Deleted Reactions'); ylabel(all_metrics{i}); title(all_metrics{i}, 'Interpreter', 'none'); grid on;
+    xlabel('Deleted Reactions'); ylabel(all_metrics{i}, 'Interpreter', 'none'); title(all_metrics{i}, 'Interpreter', 'none'); grid on;
     if i == 1, legend('Location','best','FontSize',6); end
 end
-title(t4, 'Fig 4: Comprehensive Metrics vs Deletion (○ maximal, □ minimal)');
-saveas(f4, fullfile(plotsDir, 'Fig4_AllMetrics_vs_Deletion.png'));
-close(f4);
+title(t4, 'Fig 4: Comprehensive Metrics vs Deletion');
+saveas(f4, fullfile(plotsDir, 'Fig4_AllMetrics_vs_Deletion.png')); close(f4);
 
 % --- FIGURE 5: KEPT EFFICIENCY (Metric / Kept) ---
 f5 = figure('Position', [100, 100, 1200, 800], 'Name', 'Kept Efficiency', 'Color', 'w', 'Visible', 'off');
@@ -746,136 +780,290 @@ legend('Location','best');
 saveas(f6, fullfile(plotsDir, 'Fig6_Deletion_Ratios_Boxplots.png'));
 close(f6);
 
-% --- FIGURE 7: DELETION SCALING ---
+% =========================================================================
+% FIGURE 7: DELETION SCALING
+% =========================================================================
 f7 = figure('Position', [100, 100, 1200, 800], 'Name', 'Deletion Scaling', 'Color', 'w', 'Visible', 'off');
 t7 = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
 metrics_del = {'Eff_Del_LCC', 'Eff_Del_AA', 'Eff_Del_MTA', 'Eff_Del_Mod'};
 titles_del = {'LCC / Deleted', 'AA / Deleted', 'MTA / Deleted', 'Fragmentation / Deleted'};
+
 for i = 1:4
     nexttile; hold on;
+    is_dep = ismember(metrics_del{i}, media_dep_vars);
+    
     for m = 1:length(methods_list)
-        for med = 1:length(media_list)
-            idx = strcmp(T_long.Method, methods_list{m}) & (T_long.Media == media_list{med});
-            if any(idx)
-                marker = (med==1)*'o' + (med==2)*'s';
-                scatter(T_long.LostCount(idx), T_long.(metrics_del{i})(idx), 50, colors_method(m,:), marker, 'filled', 'MarkerFaceAlpha', 0.6, ...
-                    'DisplayName', sprintf('%s (%s)', methods_list{m}, media_list{med}));
+        if is_dep
+            for med = 1:length(media_list)
+                idx = strcmp(T_long.Method, methods_list{m}) & (T_long.Media == media_list{med});
+                if med == 1, m_shape = 'o'; else, m_shape = 's'; end
+                scatter(T_long.LostCount(idx), T_long.(metrics_del{i})(idx), 'SizeData', 50, 'Marker', m_shape, 'MarkerEdgeColor', colors_method(m,:), 'MarkerFaceColor', colors_method(m,:), 'MarkerFaceAlpha', 0.6, 'DisplayName', sprintf('%s (%s)', methods_list{m}, media_list{med}));
             end
+        else
+            idx = strcmp(T_unique.Method, methods_list{m});
+            scatter(T_unique.LostCount(idx), T_unique.(metrics_del{i})(idx), 'SizeData', 50, 'Marker', 'o', 'MarkerEdgeColor', colors_method(m,:), 'MarkerFaceColor', colors_method(m,:), 'MarkerFaceAlpha', 0.6, 'DisplayName', methods_list{m});
         end
     end
-    xlabel('Deleted Reactions'); ylabel(titles_del{i}); title(titles_del{i}); grid on;
+    xlabel('Deleted Reactions'); ylabel(titles_del{i}, 'Interpreter', 'none'); title(titles_del{i}); grid on;
     if i == 1, legend('Location','best'); end
 end
-title(t7, 'Fig 7: Scaling of Deletion Efficiency (○ maximal, □ minimal)');
-saveas(f7, fullfile(plotsDir, 'Fig7_Deletion_Scaling.png'));
-close(f7);
+title(t7, 'Fig 7: Scaling of Deletion Efficiency ');
+saveas(f7, fullfile(plotsDir, 'Fig7_Deletion_Scaling.png')); close(f7);
 
-% --- FIGURE 8: KEPT EFFICIENCY SCALING ---
+% =========================================================================
+% FIGURE 8: KEPT EFFICIENCY SCALING
+% =========================================================================
 f8 = figure('Position', [100, 100, 1200, 800], 'Name', 'Kept Scaling', 'Color', 'w', 'Visible', 'off');
 t8 = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
 metrics_kept = {'Eff_Kept_LCC', 'Eff_Kept_AA', 'Eff_Kept_MTA', 'Eff_Kept_Mod'};
 titles_kept = {'LCC / Kept', 'AA / Kept', 'MTA / Kept', 'FragRatio / Kept'};
+
 for i = 1:4
     nexttile; hold on;
+    is_dep = ismember(metrics_kept{i}, media_dep_vars);
+    
     for m = 1:length(methods_list)
-        for med = 1:length(media_list)
-            idx = strcmp(T_long.Method, methods_list{m}) & (T_long.Media == media_list{med});
+        if is_dep
+            for med = 1:length(media_list)
+                idx = strcmp(T_long.Method, methods_list{m}) & (T_long.Media == media_list{med});
+                if med == 1, m_shape = 'o'; else, m_shape = 's'; end
+                scatter(T_long.LostCount(idx), T_long.(metrics_kept{i})(idx), 'SizeData', 50, 'Marker', m_shape, 'MarkerEdgeColor', colors_method(m,:), 'MarkerFaceColor', colors_method(m,:), 'MarkerFaceAlpha', 0.6, 'DisplayName', sprintf('%s (%s)', methods_list{m}, media_list{med}));
+            end
+        else
+            idx = strcmp(T_unique.Method, methods_list{m});
+            scatter(T_unique.LostCount(idx), T_unique.(metrics_kept{i})(idx), 'SizeData', 50, 'Marker', 'o', 'MarkerEdgeColor', colors_method(m,:), 'MarkerFaceColor', colors_method(m,:), 'MarkerFaceAlpha', 0.6, 'DisplayName', methods_list{m});
+        end
+    end
+    xlabel('Deleted Reactions'); ylabel(titles_kept{i}, 'Interpreter', 'none'); title(titles_kept{i}); grid on;
+    if i == 1, legend('Location','best'); end
+end
+title(t8, 'Fig 8: Scaling of Kept Efficiency)');
+saveas(f8, fullfile(plotsDir, 'Fig8_Kept_Efficiency_Scaling.png')); close(f8);
+methods_order = {'COVLUX', 'FASTCORE', 'iMAT'};
+
+% =========================================================================
+% FIGURE 9: BALANCED F-SCORES (4 METRICS)
+% =========================================================================
+f9 = figure('Position', [100, 100, 1200, 800], 'Name', 'Balanced F-Scores', 'Color', 'w', 'Visible', 'off');
+t9 = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact'); 
+f_metrics = {'F_Mod', 'F_AA', 'F_MTA', 'F_Bio'};
+f_titles  = {'Modularity Balance', 'AA Yield Balance', 'MTA Yield Balance', 'Biomass Balance'};
+
+for i = 1:4
+    ax = nexttile; hold on;
+    is_dep = ismember(f_metrics{i}, media_dep_vars);
+    
+    for m = 1:3
+        m_name = methods_order{m};
+        m_color = colors_method(m, :);
+        
+        if is_dep
+            % Maximal Media (Solid, left shifted)
+            idx_max = strcmp(T_long.Method, m_name) & (T_long.Media == 'max');
+            if any(idx_max)
+                bc = boxchart(m*ones(sum(idx_max),1) - 0.15, T_long.(f_metrics{i})(idx_max));
+                set(bc, 'BoxFaceColor', m_color, 'MarkerColor', m_color, 'BoxFaceAlpha', 0.85, 'LineWidth', 1.2, 'BoxWidth', 0.25);
+            end
+            
+            % Minimal Media (Transparent, right shifted)
+            idx_min = strcmp(T_long.Method, m_name) & (T_long.Media == 'min');
+            if any(idx_min)
+                bc = boxchart(m*ones(sum(idx_min),1) + 0.15, T_long.(f_metrics{i})(idx_min));
+                set(bc, 'BoxFaceColor', m_color, 'MarkerColor', m_color, 'BoxFaceAlpha', 0.25, 'LineWidth', 1.2, 'BoxWidth', 0.25);
+            end
+        else
+            % Structural Metric (Solid, perfectly centered)
+            idx = strcmp(T_unique.Method, m_name);
             if any(idx)
-                marker = (med==1)*'o' + (med==2)*'s';
-                scatter(T_long.LostCount(idx), T_long.(metrics_kept{i})(idx), 50, colors_method(m,:), marker, 'filled', 'MarkerFaceAlpha', 0.6, ...
-                    'DisplayName', sprintf('%s (%s)', methods_list{m}, media_list{med}));
+                bc = boxchart(m*ones(sum(idx),1), T_unique.(f_metrics{i})(idx));
+                set(bc, 'BoxFaceColor', m_color, 'MarkerColor', m_color, 'BoxFaceAlpha', 0.85, 'LineWidth', 1.2, 'BoxWidth', 0.4);
             end
         end
     end
-    xlabel('Deleted Reactions'); ylabel(titles_kept{i}); title(titles_kept{i}); grid on;
-    if i == 1, legend('Location','best'); end
+    
+    % Format the manual X-axis
+    xticks(1:3);
+    xticklabels(methods_order);
+    xlim([0.5, 3.5]);
+    
+    grid on; ax.GridLineStyle = ':'; ax.GridAlpha = 0.5;
+    ylabel('F1 Score', 'FontWeight', 'bold'); 
+    title(f_titles{i}, 'FontSize', 12); 
 end
-title(t8, 'Fig 8: Scaling of Kept Efficiency (○ maximal, □ minimal)');
-saveas(f8, fullfile(plotsDir, 'Fig8_Kept_Efficiency_Scaling.png'));
-close(f8);
 
-% --- FIGURE 9: BALANCED F-SCORES (boxplots with media color) ---
-f9 = figure('Position', [100, 100, 1200, 800], 'Name', 'Balanced F-Scores', 'Color', 'w', 'Visible', 'off');
-t9 = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
-nexttile; boxchart(categorical(T_long.Method), T_long.F_LCC, 'GroupByColor', T_long.Media); colororder(lines(2)); ylabel('LCC Balanced Score'); title('Structural Balance'); grid on;
-nexttile; boxchart(categorical(T_long.Method), T_long.F_AA, 'GroupByColor', T_long.Media); colororder(lines(2)); ylabel('AA Balanced Score'); title('Biosynthetic Balance'); grid on;
-nexttile; boxchart(categorical(T_long.Method), T_long.F_MTA, 'GroupByColor', T_long.Media); colororder(lines(2)); ylabel('MTA Balanced Score'); title('Core Balance'); grid on;
-nexttile; boxchart(categorical(T_long.Method), T_long.F_Mod, 'GroupByColor', T_long.Media); colororder(lines(2)); ylabel('Modularity Balanced Score'); title('Cohesive Balance'); grid on;
-title(t9, 'Fig 9: Balanced Scores (Yield-Pruning Harmonic Mean) – Media comparison');
-legend('Location','best');
-saveas(f9, fullfile(plotsDir, 'Fig9_Balanced_Scores.png'));
-close(f9);
+% Create Custom Legend Patches (Neutral Gray to explain Opacity)
+hold on;
+hMax = patch(NaN, NaN, [0.4 0.4 0.4], 'FaceAlpha', 0.85, 'EdgeColor', 'k', 'LineWidth', 1.2);
+hMin = patch(NaN, NaN, [0.4 0.4 0.4], 'FaceAlpha', 0.25, 'EdgeColor', 'k', 'LineWidth', 1.2);
+lg = legend([hMax, hMin], {'Maximal Media', 'Minimal Media'}, 'Orientation', 'horizontal', 'FontSize', 11);
+lg.Layout.Tile = 'north';
+title(t9, 'Fig 9: Balanced Scores (Trade-off: Metric vs. Pruning)', 'FontSize', 14, 'FontWeight', 'bold');
+saveas(f9, fullfile(plotsDir, 'Fig9_Balanced_Scores.png')); close(f9);
 
-% --- FIGURE 10: RAW METRICS WITH DELETION COUNTS ---
-f10 = figure('Position', [100, 100, 1200, 800], 'Name', 'Raw Metrics Boxplots', 'Color', 'w', 'Visible', 'off');
-t10 = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
-% 1. AA Raw
-nexttile; 
-boxchart(categorical(T_long.Method), T_long.AA, 'GroupByColor', T_long.Media); 
-colororder(lines(2)); ylabel('AA Synthesis (%)'); title('Raw Amino Acid Yield'); grid on;
-% 2. MTA Raw
-nexttile; 
-boxchart(categorical(T_long.Method), T_long.MTA, 'GroupByColor', T_long.Media); 
-colororder(lines(2)); ylabel('MTA Core (%)'); title('Raw Metabolic Task Yield'); grid on;
-% 3. Modularity (Frag Ratio)
-nexttile; 
-boxchart(categorical(T_long.Method), T_long.FragRatio, 'GroupByColor', T_long.Media); 
-colororder(lines(2)); ylabel('Fragmentation Ratio'); title('Raw Modularity (Lower is Better)'); grid on;
-% 4. LCC Raw (Topology)
-nexttile; 
-boxchart(categorical(T_long.Method), T_long.LCC_Pct, 'GroupByColor', T_long.Media); 
-colororder(lines(2)); ylabel('LCC (%)'); title('Raw Network Integrity'); grid on;
-lg = legend(media_list, 'Orientation', 'horizontal'); lg.Layout.Tile = 'north';
-title(t10, 'Fig 10: Raw Functional Metrics (Ref: Deletion Counts) – Media comparison');
-saveas(f10, fullfile(plotsDir, 'Fig10_Raw_Metrics_With_Deletion_Counts.png'));
-close(f10);
 
-fprintf('All 10 figures saved to %s\n', plotsDir);
+% =========================================================================
+% FIGURE 10: RAW METRICS (5 METRICS)
+% =========================================================================
+f10 = figure('Position', [100, 100, 1400, 800], 'Name', 'Raw Metrics Boxplots', 'Color', 'w', 'Visible', 'off');
+t10 = tiledlayout(2, 3, 'TileSpacing', 'compact', 'Padding', 'compact');
+raw_metrics  = {'AvgVariance', 'Lost_NumComponents', 'FragRatio', 'AA', 'MTA'};
+raw_y_labels = {'Trace(X)/N', 'Count', 'Fragmentation Ratio', 'Yield (%)', 'Yield (%)'};
+raw_titles   = {'Captured Variance', 'Removed CCs', 'Modularity', 'Amino Acid Yield', 'Metabolic Task Yield'};
 
-%% 9. CORRELATION ANALYSIS (PDF with both media)
-fprintf('=== Generating Correlation PDF Report (Both Media) ===\n');
+for i = 1:5
+    ax = nexttile; hold on;
+    is_dep = ismember(raw_metrics{i}, media_dep_vars);
+    
+    for m = 1:3
+        m_name = methods_order{m};
+        m_color = colors_method(m, :);
+        
+        if is_dep
+            % Maximal Media
+            idx_max = strcmp(T_long.Method, m_name) & (T_long.Media == 'max');
+            if any(idx_max)
+                bc = boxchart(m*ones(sum(idx_max),1) - 0.15, T_long.(raw_metrics{i})(idx_max));
+                set(bc, 'BoxFaceColor', m_color, 'MarkerColor', m_color, 'BoxFaceAlpha', 0.85, 'LineWidth', 1.2, 'BoxWidth', 0.25);
+            end
+            
+            % Minimal Media
+            idx_min = strcmp(T_long.Method, m_name) & (T_long.Media == 'min');
+            if any(idx_min)
+                bc = boxchart(m*ones(sum(idx_min),1) + 0.15, T_long.(raw_metrics{i})(idx_min));
+                set(bc, 'BoxFaceColor', m_color, 'MarkerColor', m_color, 'BoxFaceAlpha', 0.25, 'LineWidth', 1.2, 'BoxWidth', 0.25);
+            end
+        else
+            % Structural Metric
+            idx = strcmp(T_unique.Method, m_name);
+            if any(idx)
+                bc = boxchart(m*ones(sum(idx),1), T_unique.(raw_metrics{i})(idx));
+                set(bc, 'BoxFaceColor', m_color, 'MarkerColor', m_color, 'BoxFaceAlpha', 0.85, 'LineWidth', 1.2, 'BoxWidth', 0.4);
+            end
+        end
+    end
+    
+    % Format the manual X-axis
+    xticks(1:3);
+    xticklabels(methods_order);
+    xlim([0.5, 3.5]);
+    
+    grid on; ax.GridLineStyle = ':'; ax.GridAlpha = 0.5;
+    ylabel(raw_y_labels{i}, 'FontWeight', 'bold'); 
+    title(raw_titles{i}, 'FontSize', 12); 
+end
+
+% Create Custom Legend Patches
+hold on;
+hMax = patch(NaN, NaN, [0.4 0.4 0.4], 'FaceAlpha', 0.85, 'EdgeColor', 'k', 'LineWidth', 1.2);
+hMin = patch(NaN, NaN, [0.4 0.4 0.4], 'FaceAlpha', 0.25, 'EdgeColor', 'k', 'LineWidth', 1.2);
+lg = legend([hMax, hMin], {'Maximal Media', 'Minimal Media'}, 'Orientation', 'horizontal', 'FontSize', 11);
+lg.Layout.Tile = 'north';
+title(t10, 'Fig 10: Raw Metrics (Wiring, Topology, Modularity, Function)', 'FontSize', 14, 'FontWeight', 'bold');
+saveas(f10, fullfile(plotsDir, 'Fig10_Raw_Metrics.png')); close(f10);
+%% 9. CORRELATION ANALYSIS (PDF with strict data parsing)
+fprintf('=== Generating Correlation PDF Report ===\n');
+
 metrics_list = {'Biomass', 'LCC_Pct', 'Alg_Connectivity', 'AA', 'MTA', 'Falsepositives', 'FragRatio', 'Eff_Del_AA'};
-metric_names_clean = {'Biomass', 'LCC (%)', 'Algebraic Connectivity', 'AA Yield (%)', 'MTA Yield (%)', 'False Positives', 'Fragmentation', 'Del. Efficiency (AA/Del)'};
-pdfFile = fullfile(plotsDir, 'Method_Deletion_Correlations_Overlaid.pdf');
+metric_names_clean = {'Biomass (Fun)', 'LCC (%) (Str)', 'Algebraic Connectivity (Str)', 'AA Yield (%) (Fun)', 'MTA Yield (%) (Fun)', 'False Positives (Str)', 'Fragmentation (Str)', 'Del. Efficiency AA (Fun)'};
+
+pdfFile = fullfile(plotsDir, 'Method_Deletion_Correlations.pdf');
 if exist(pdfFile, 'file'), delete(pdfFile); end
 
 fig = figure('Visible', 'off', 'Position', [0 0 1200 1600], 'Color', 'w');
 t = tiledlayout(4, 2, 'TileSpacing', 'compact', 'Padding', 'normal');
-title(t, 'Correlation: Metrics vs DELETED Reactions (○ maximal, □ minimal)', 'FontSize', 16, 'FontWeight', 'bold');
+title(t, 'Correlation: Metrics vs DELETED Reactions', 'FontSize', 16, 'FontWeight', 'bold');
 
 for i = 1:length(metrics_list)
     ax = nexttile; hold(ax, 'on');
     y_name = metrics_list{i};
+    is_dep = ismember(y_name, media_dep_vars);
+    
     legend_handles = [];
+    legend_labels = {};
+    
     for m = 1:length(methods_list)
-        for med = 1:length(media_list)
-            idx = strcmp(T_long.Method, methods_list{m}) & (T_long.Media == media_list{med});
-            sub_data = T_long(idx, :);
+        if is_dep
+            % Functional: Split by media
+            for med = 1:length(media_list)
+                % STRICT string matching to handle 'Energy'/'Amino_Acids' instead of 'max'/'min'
+                idx = strcmp(string(T_long.Method), string(methods_list{m})) & strcmp(string(T_long.Media), string(media_list{med}));
+                sub_data = T_long(idx, :);
+                
+                if height(sub_data) > 0
+                    % Force double and drop NaNs
+                    x_vals = double(sub_data.LostCount(:));
+                    y_vals = double(sub_data.(y_name)(:));
+                    mask = ~isnan(x_vals) & ~isnan(y_vals);
+                    x_vals = x_vals(mask);
+                    y_vals = y_vals(mask);
+                    
+                    if ~isempty(x_vals)
+                        if med == 1, m_shape = 'o'; else, m_shape = 's'; end
+                        disp_name = sprintf('%s %s', methods_list{m}, media_list{med});
+                        
+                        h_sc = scatter(x_vals, y_vals, 'SizeData', 60, 'Marker', m_shape, 'MarkerEdgeColor', colors_method(m,:), 'MarkerFaceColor', colors_method(m,:), 'MarkerFaceAlpha', 0.6);
+                        
+                        if ~ismember(disp_name, legend_labels)
+                            legend_labels{end+1} = disp_name;
+                            legend_handles(end+1) = h_sc(1); 
+                        end
+                        
+                        if length(x_vals) > 2 && std(y_vals) > 1e-6
+                            [~, ~] = corr(x_vals, y_vals, 'Type', 'Spearman', 'Rows', 'complete');
+                            p = polyfit(x_vals, y_vals, 1);
+                            x_fit = linspace(min(x_vals), max(x_vals), 100);
+                            y_fit = polyval(p, x_fit);
+                            plot(x_fit, y_fit, '-', 'Color', colors_method(m,:), 'LineWidth', 1.5, 'HandleVisibility', 'off');
+                        end
+                    end
+                end
+            end
+        else
+            % Structural: No media split
+            idx = strcmp(string(T_unique.Method), string(methods_list{m}));
+            sub_data = T_unique(idx, :);
+            
             if height(sub_data) > 0
-                x_vals = sub_data.LostCount;
-                y_vals = sub_data.(y_name);
-                marker = (med==1)*'o' + (med==2)*'s';
-                h_sc = scatter(x_vals, y_vals, 40, colors_method(m,:), marker, 'filled', 'MarkerFaceAlpha', 0.6, ...
-                    'DisplayName', sprintf('%s %s', methods_list{m}, media_list{med}));
-                legend_handles = [legend_handles, h_sc];
-                if length(x_vals) > 2 && std(y_vals) > 1e-6
-                    [R, ~] = corr(x_vals, y_vals, 'Type', 'Spearman', 'Rows', 'complete');
-                    p = polyfit(x_vals, y_vals, 1);
-                    x_fit = linspace(min(x_vals), max(x_vals), 100);
-                    y_fit = polyval(p, x_fit);
-                    plot(x_fit, y_fit, '-', 'Color', colors_method(m,:), 'LineWidth', 1.5, 'HandleVisibility', 'off');
+                x_vals = double(sub_data.LostCount(:));
+                y_vals = double(sub_data.(y_name)(:));
+                mask = ~isnan(x_vals) & ~isnan(y_vals);
+                x_vals = x_vals(mask);
+                y_vals = y_vals(mask);
+                
+                if ~isempty(x_vals)
+                    disp_name = char(methods_list{m});
+                    h_sc = scatter(x_vals, y_vals, 'SizeData', 60, 'Marker', 'o', 'MarkerEdgeColor', colors_method(m,:), 'MarkerFaceColor', colors_method(m,:), 'MarkerFaceAlpha', 0.6);
+                    
+                    if ~ismember(disp_name, legend_labels)
+                        legend_labels{end+1} = disp_name;
+                        legend_handles(end+1) = h_sc(1);
+                    end
+                    
+                    if length(x_vals) > 2 && std(y_vals) > 1e-6
+                        [~, ~] = corr(x_vals, y_vals, 'Type', 'Spearman', 'Rows', 'complete');
+                        p = polyfit(x_vals, y_vals, 1);
+                        x_fit = linspace(min(x_vals), max(x_vals), 100);
+                        y_fit = polyval(p, x_fit);
+                        plot(x_fit, y_fit, '-', 'Color', colors_method(m,:), 'LineWidth', 1.5, 'HandleVisibility', 'off');
+                    end
                 end
             end
         end
     end
+    
     xlabel('Number of DELETED Reactions'); ylabel(metric_names_clean{i}); grid on;
-    legend(legend_handles, 'Location', 'best', 'FontSize', 7, 'Box', 'on');
+    
+    % Only plot legend if we actually drew points
+    if ~isempty(legend_handles)
+        legend(legend_handles, legend_labels, 'Location', 'best', 'FontSize', 7, 'Box', 'on');
+    end
+    
     title(metric_names_clean{i}, 'FontSize', 12); hold(ax, 'off');
 end
+
 exportgraphics(fig, pdfFile, 'ContentType', 'vector');
 close(fig);
 fprintf('Correlation PDF saved to %s\n', pdfFile);
-
 %% FUNCTION: iMAT MILP (unchanged)
 function [kept_indices] = run_imat_milp_strict(model, RH, RL)
     [m, n] = size(model.S);

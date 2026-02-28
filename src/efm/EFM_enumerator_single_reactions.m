@@ -38,8 +38,8 @@ eps_flux      = 1e-7;
 tol_balance   = 1e-8;
 M             = 1e3;
 badPair_count = 0;
-JACCARD_TAU   = 0.99;              % skip a candidate if Jaccard(similarity) >= 0.95 to any accepted support
-MAX_PER_ANCHOR = 300; % accept up to this many supports per anchor (set Inf for no cap)
+JACCARD_TAU   = 0.8;              % skip a candidate if Jaccard(similarity) >= 0.95 to any accepted support
+MAX_PER_ANCHOR = 400; % accept up to this many supports per anchor (set Inf for no cap)
 MIN_PER_ANCHOR=1;
 
 accepted_supps = {};    % global list of supports to compare Jaccard against
@@ -611,12 +611,12 @@ else
     EFM_support = abs(EFM_matrix(2:end, :)) > tol_nz;
 
     % Save MAT + CSV (include new structures)
-    save('efms_matrix_iML1515_gapfill2.mat', ...
+    save('efms_matrix_iML1515_denovo.mat', ...
          'EFM_matrix','EFM_table','rowNames','varNames','EFM_support', ...
          'EFM_anchor','EFM_supps','rxnNames','S','model_ir');
 
     writetable(EFM_table, ...
-               'efms_matrix_iML1515_gapfill2.csv', ...
+               'efms_matrix_iML1515_denovo.csv', ...
                'WriteRowNames', true);
 
     fprintf('Saved EFM matrix: (%d x %d) = [residual; %d reactions] x %d EFMs\n', ...

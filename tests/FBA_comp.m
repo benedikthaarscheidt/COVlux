@@ -86,8 +86,8 @@ if ~isempty(o2_idx), ub_base(o2_idx) = 20; end
 target_rxns_mod = {};
 for i = 1:length(rxnNames)
     r_name = lower(rxnNames{i});
-    is_output = startsWith(r_name, 'ex_') || startsWith(r_name, 'dm_') || contains(r_name, 'biomass') || contains(r_name, 'atpm');
-    has_kw = any(contains(r_name, {'trp','met','cys','glu','gln','ala','arg','asn','asp','his','ile','leu','lys','phe','pro','ser','thr','tyr','val','mta', 'atp', 'nadh', 'fad'}));
+    is_output =  startsWith(r_name, 'dm_') || contains(r_name, 'biomass') || contains(r_name, 'atpm');
+    has_kw = any(contains(r_name, {'trp','met','cys','glu','gln','ala','arg','asn','asp','his','ile','leu','lys','phe','pro','ser','thr','tyr','val','mta', 'atp', 'nadh', 'fad','accoa','succoa','akg','pyr', 'oaa'}));
     if is_output && has_kw && ~endsWith(r_name, '_b'), target_rxns_mod{end+1} = rxnNames{i}; end
 end
 target_rxns_mod = unique(target_rxns_mod)';
