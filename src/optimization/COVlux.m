@@ -206,7 +206,7 @@ summaryMetrics = [];
 for k = 1:numel(files)
     filePath = fullfile(files(k).folder, files(k).name);
     [~, fileName, ~] = fileparts(files(k).name);
-    clusterName = regexprep(fileName, '_COV.*$', '');
+    clusterName = regexprep(fileName, '_logCPM_COV.*$', '');
     
     fprintf('\n=== Processing %d/%d: %s ===\n', k, numel(files), clusterName);
     

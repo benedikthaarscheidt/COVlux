@@ -327,13 +327,18 @@ for k = 1:length(files)
 end
 
 %% 5. VISUALIZATION
+cluster_full_name = strrep(cluster_full_name, '_logCPM', '');
+plotdir = fullfile(resultsDir, "plots");
 
-plotdir=fullfile(resultsDir,"plots")
+if ~exist(plotdir, 'dir')
+    mkdir(plotdir);
+end
+
 outputPdfPath = fullfile(plotdir, 'Functional_Gap_and_Variance.pdf');
 T = struct2table(Stats);
 
 fig = figure('Name', 'Gap vs Variance', 'Color', 'w', 'Position', [100 100 1200 1500]);
-t = tiledlayout(5, 1, 'Padding', 'compact');
+t = tiledlayout(4, 1, 'Padding', 'compact');
 
 % Plot 1: Functional Gap
 nexttile;
@@ -360,17 +365,8 @@ bar_data_avg = [T.AvgVar_COV, T.AvgVar_FAST, T.AvgVar_iMAT];
 b3 = bar(bar_data_avg, 'grouped');
 b3(1).FaceColor = [0 0.45 0.74]; b3(2).FaceColor = [0.93 0.69 0.13]; b3(3).FaceColor = [0.85 0.33 0.1];
 ylabel('Avg Variance (Unit/Rxn)');
-title('3. Information Density (Efficiency: How "rich" is the model?)');
+title('3. Variance Density');
 xticklabels(T.Cluster); xtickangle(45); grid on;
-nexttile;
-bar_data_coh = [T.Coherence_COV, T.Coherence_FAST, T.Coherence_iMAT];
-b4 = bar(bar_data_coh, 'grouped');
-b4(1).FaceColor = [0 0.45 0.74]; b4(2).FaceColor = [0.93 0.69 0.13]; b4(3).FaceColor = [0.85 0.33 0.1];
-ylabel('Mean Correlation (|r|)');
-title('4. Network Coherence (Are the kept reactions actually connected?)');
-xticklabels(T.Cluster); xtickangle(45); grid on;
-legend({'COVlux', 'FASTCORE', 'iMAT'}, 'Location', 'best');
-% Plot 3: Lost Reactions (NEW)
 nexttile;
 bar_data_lost = [T.Lost_COV, T.Lost_FAST, T.Lost_iMAT];
 b3 = bar(bar_data_lost, 'grouped');

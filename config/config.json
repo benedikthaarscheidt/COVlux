@@ -13,7 +13,7 @@
         "max_iters": 100,
         "use_big_basis": true,
         "use_conditions": false,
-        "input_clustering_folder": "GSE217715_D1_lib1_nFeat2000_Dims8_Res0.5",
+        "input_clustering_folder": "Ecoli_eBW4_nFeat2000_Dims7_Res0.6",
         "verbose":true,
         "n_features": 2000,
         "pca_dims": [1, 2, 3, 4, 5, 6, 7,8],
@@ -22,19 +22,21 @@
         "min_features_qc": 100,
         "genes_per_cell_qc": 10,
         "min_cluster_size": 10,
-        "project_name":"GSE217715_D1_lib1",
+        "project_name":"Ecoli_eBW4",
         "div_by_reactions":true,
         "second_moment_mat":true,
         "use_smart_mapping":true,
         "mean_influence" : 0,
-        "biomassEFMs":true
+        "biomassEFMs":false
 
     },
     "clustering": {
         "input_files": [
             {   
-                "id":"GSE217715_D1_lib1",
-                "expr_path": "E_coli/GSE217715_D1_lib1.csv"
+                "id": "GSM7306273",
+                "expr_path": "E_coli/GSM7306273_expression_filtered_scifi10_MG1655_25.csv",
+                "gene_path": "E_coli/GSM7306273_gene_index_scifi10_MG1655_25.csv",
+                "cell_index_path": "E_coli/GSM7306273_cell_index_scifi10_MG1655_25.csv"
 
             }
         ]

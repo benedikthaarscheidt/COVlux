@@ -189,7 +189,7 @@ end
 fprintf('\nFound %d cluster(s) to analyze.\n', length(logFiles));
 
 for f = 1:length(logFiles)
-    clusterName = strrep(logFiles(f).name, '_removal_log.csv', '');
+    clusterName = strrep(logFiles(f).name, '_logCPM_removal_log.csv', '');
     logPath = fullfile(log_dir, logFiles(f).name);
     
     fprintf('\n\n#######################################################\n');
@@ -473,7 +473,10 @@ for f = 1:length(logFiles)
         text(0.5,0.5,'No remaining capacity','HorizontalAlignment','center');
         title('Final Capacity');
     end
-    
+    plotDir = fullfile(runDir, 'plots'); 
+    if ~exist(plotDir, 'dir')
+        mkdir(plotDir);
+    end
     saveas(f1, fullfile(plotDir, sprintf('%s_Subsystem_Trajectory.png', clusterName)));
     close(f1);
 

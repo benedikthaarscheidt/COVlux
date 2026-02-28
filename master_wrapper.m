@@ -12,7 +12,7 @@ diary('Pipeline_Run_Log.txt');
 % 1. Define the relative paths to your scripts
 pipeline_tasks = {
     %fullfile('src', 'mras', 'MRAS_mapping.m');
-    fullfile('src', 'optimization', 'COVlux.m');
+    %fullfile('src', 'optimization', 'COVlux.m');
     fullfile('tests', 'master_comparison_cov.m');
     fullfile('tests', 'biomass_distance.m');
     fullfile('tests', 'analyze_biological_state.m');
