@@ -141,7 +141,8 @@ for k = 1:length(files)
     
     % --- B. EXPRESSION DATA -> iMAT & FASTCORE ---
 
-    exprFile = fullfile(expressionDir, [expr_short_name, '_mapped_to_model.csv']);
+    exprFile = fullfile(expressionDir, [expr_short_name, '_logCPM_mapped_to_model.csv']);
+    fprintf("File name : %s",exprFile)
     RH_indices = []; RL_indices = [];
     if exist(exprFile, 'file')
         T = readtable(exprFile, 'VariableNamingRule', 'preserve');

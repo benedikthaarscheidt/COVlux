@@ -204,10 +204,11 @@ fprintf('%s\n', repmat('-', 1, 300));
 
 for k = 1:length(files)
     filename = files(k).name;
+    
     cluster_full_name = strrep(filename, '_unique_lost_rxns_full.csv', '');
     expr_name_parts = strsplit(cluster_full_name, '_MRAS');
     expr_short_name = expr_name_parts{1};
-    cluster_full_name = strrep(cluster_full_name, '_logCPM', '');
+    
 
     % --- A. LOAD COVARIANCE ---
     covFile = fullfile(covInputDir, [cluster_full_name '_COV.csv']);
@@ -226,7 +227,10 @@ for k = 1:length(files)
     end
 
     % --- B. PREPARE EXPRESSION ---
-    exprFile = fullfile(expressionDir, [expr_short_name, '_mapped_to_model.csv']);
+    exprFile = fullfile(expressionDir, [expr_short_name, '_logCPM_mapped_to_model.csv']);
+    
+    
+    cluster_full_name = strrep(cluster_full_name, '_logCPM', '');
     RH_indices = []; RL_indices = [];
     current_RL_set = [];
     if exist(exprFile, 'file')
@@ -478,7 +482,7 @@ for k = 1:length(files)
             end
 
             % --- PhPP (only for maximal, and only if biomass_max > 1e-6) ---
-            if med_idx == 1 && do_phpp && biomass_max > 1e-6
+            if med_idx == 1 && do_phpp 
                 phpp_vals = [];
                 for i_g = 1:n_points
                     for j_o = 1:n_points

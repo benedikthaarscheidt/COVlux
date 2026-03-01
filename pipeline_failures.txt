@@ -5,3 +5,4 @@
 [27-Feb-2026 17:34:42] Script: master_comparison_cov | Error: Undefined function 'lt' for input arguments of type 'cell'.
 [27-Feb-2026 18:29:59] Script: biomass_distance | Error: The value of 'destination' is invalid. Unable to create output file '/Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-26_23-39-39/plots/Functional_Gap_and_Variance.pdf', No such file or directory.
 [27-Feb-2026 18:30:40] Script: analyze_biological_state | Error: Invalid or missing path: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-26_23-39-39/plots/cluster_0_Subsystem_Trajectory.png
+[28-Feb-2026 22:46:02] Script: master_comparison_cov | Error: Unrecognized function or variable 'avg_phpp_max'.

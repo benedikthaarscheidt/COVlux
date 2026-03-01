@@ -1,9 +1,9 @@
 % 1. Load both files into separate structures
 fprintf('Loading Base Basis (lastbit)...\n');
-D1 = load('/Users/benedikthaarscheidt/COVlux/efms_matrix_iML1515_lastbit.mat');
+D1 = load('/Users/benedikthaarscheidt/COVlux/efms_matrix_iML1515_denovo.mat');
 
 fprintf('Loading Gapfill Basis...\n');
-D2 = load('/Users/benedikthaarscheidt/COVlux/efms_matrix_iML1515_gapfill2.mat');
+D2 = load('/Users/benedikthaarscheidt/COVlux/data/models/E_coli/efms/efms_matrix_iML1515_full_merged.mat');
 
 fprintf('Merging datasets...\n');
 
@@ -23,7 +23,7 @@ S        = D1.S;
 model_ir = D1.model_ir;
 
 % 5. Save the combined master file
-targetFile = '/Users/benedikthaarscheidt/COVlux/efms_matrix_iML1515_full_merged.mat';
+targetFile = '/Users/benedikthaarscheidt/COVlux/data/models/E_coli/efms/efms_matrix_iML1515_full_merged2.mat';
 fprintf('Saving to %s...\n', targetFile);
 save(targetFile, 'EFM_matrix', 'EFM_support', 'EFM_anchor', 'EFM_supps', ...
      'varNames', 'rowNames', 'rxnNames', 'S', 'model_ir', '-v7.3');

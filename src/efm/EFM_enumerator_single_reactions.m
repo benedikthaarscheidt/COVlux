@@ -40,7 +40,7 @@ M             = 1e3;
 badPair_count = 0;
 JACCARD_TAU   = 0.8;              % skip a candidate if Jaccard(similarity) >= 0.95 to any accepted support
 MAX_PER_ANCHOR = 400; % accept up to this many supports per anchor (set Inf for no cap)
-MIN_PER_ANCHOR=1;
+MIN_PER_ANCHOR=15;
 
 accepted_supps = {};    % global list of supports to compare Jaccard against
 EFM_supps  = {};        % all accepted supports (any anchor)
@@ -330,7 +330,7 @@ badpair_counts        = zeros(p,1);
 
 %% === Enumeration loop: accept-if-fits, else prune-to-3-checks ===
 
-maxSeedAttempts = 2;
+maxSeedAttempts = 20;
 stallLimit = 300;
 noProgressCount   = 0;
 prevCoveredCount  = sum(covered);

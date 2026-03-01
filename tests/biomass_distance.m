@@ -162,7 +162,7 @@ for k = 1:length(files)
     end
     
     % --- B. GET iMAT/FASTCORE SURVIVORS ---
-    exprFile = fullfile(expressionDir,  [expr_short_name, '_mapped_to_model.csv']);
+    exprFile = fullfile(expressionDir,  [expr_short_name, '_logCPM_mapped_to_model.csv']);
     RH = []; RL = [];
     
     if exist(exprFile, 'file')

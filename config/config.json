@@ -51,7 +51,7 @@
             "E_coli/efms/efms_matrix_iML1515_pruned_permissive_biomassrm_loopless_v5_higher_cover.mat",
             "E_coli/efms/efms_matrix_iML1515_pruned_permissive_biomassrm_loopless_v5.mat",
             "E_coli/efms/efms_NEW_iML1515_pruned_permissive_biomassrm_loopless_v5.mat",
-            "E_coli/efms/efms_matrix_iML1515_full_merged.mat"
+            "E_coli/efms/efms_matrix_iML1515_full_merged2.mat"
         ],
         "model_file": "E_coli/iML1515_pruned_permissive_biomass_loopless_v6.mat"
     }
