@@ -112,7 +112,50 @@ n_rxns = length(model.rxns);
 bio_idx = find(strcmp(model.rxns, targetBiomassName));
 if isempty(bio_idx), bio_idx = find(contains(model.rxns, 'BIOMASS'),1); end
 if isempty(bio_idx), error('Biomass reaction not found.'); end
+%%
+minimal_substrates = {'ex_glc__d_e', 'ex_nh4_e', 'ex_pi_e', 'ex_so4_e', ...
+                'ex_o2_e', 'ex_h2o_e', 'ex_h_e', 'ex_k_e', ...
+                'ex_na1_e', 'ex_mg2_e', 'ex_ca2_e', 'ex_cl_e', ...
+                'ex_fe2_e', 'ex_fe3_e', 'ex_zn2_e', 'ex_mn2_e', ...
+                'ex_cu2_e', 'ex_cobalt2_e', 'ex_mobd_e', ...
+                'ex_ni2_e', 'ex_sel_e', 'ex_tungs_e'};
+model_min=model;
+exc_idx = find(startsWith(lower(rxnNames), 'ex_') & endsWith(lower(rxnNames), '_b'));% Identify exchange reactions
+model_min.lb(exc_idx) = 0;
+model_min.ub(exc_idx) = 0;      
 
+for i = 1:length(minimal_substrates)
+    rxn_id = find(strcmpi(model_min.rxns, minimal_substrates{i})); % case-insensitive
+    if ~isempty(rxn_id)
+        model_min.lb(rxn_id) = 0;
+        model_min.ub(rxn_id) = 1000;
+    else
+        warning('Minimal substrate %s not found in model.', minimal_substrates{i});
+    end
+end
+%%
+             
+
+fprintf('Printing non-zero S-matrix coefficients for %d exchange reactions:\n', length(exc_idx));
+fprintf('%-25s | %-20s | %-10s\n', 'Reaction ID', 'Metabolite', 'Coefficient');
+fprintf('%s\n', repmat('-', 1, 60));
+
+% 2. Loop through and extract S-matrix data
+for i = 1:length(exc_idx)
+    rxn_idx = exc_idx(i);
+    rxn_name = model_min.rxns{rxn_idx};
+    
+    % Find non-zero entries in this column of S
+    met_indices = find(model_min.S(:, rxn_idx));
+    
+    for j = 1:length(met_indices)
+        met_idx = met_indices(j);
+        met_name = model_min.mets{met_idx};
+        coeff = model_min.S(met_idx, rxn_idx);
+        
+        fprintf('%-25s | %-20s | %-10.2f\n', rxn_name, met_name, coeff);
+    end
+end 
 %% 4. MAIN LOOP
 files = dir(fullfile(resultsDir, '*_unique_lost_rxns_full.csv'));
 if isempty(files), error('No result CSVs found.'); end
@@ -207,13 +250,19 @@ for k = 1:length(files)
     [gap_imat, added_imat] = calculate_gap_and_patch(model, kept_imat, bio_idx);
     [gap_fast, added_fast] = calculate_gap_and_patch(model, kept_fast, bio_idx);
     
+    % --- C. GAP ANALYSIS minimal medium ---
+
+    [gap_cov_min, ~]  = calculate_gap_and_patch(model_min, kept_cov, bio_idx);
+    [gap_imat_min, ~] = calculate_gap_and_patch(model_min, kept_imat, bio_idx);
+    [gap_fast_min, ~] = calculate_gap_and_patch(model_min, kept_fast, bio_idx);
     % --- D. VARIANCE ANALYSIS (On Fixed Models) ---
+
     
     
     if usesecondmoment
-        covFile = fullfile(covDir, [cluster_full_name '_SecondMoment.csv']);
+        covFile = fullfile(covDir, [cluster_full_name '_logCPM_SecondMoment.csv']);
     else 
-        covFile = fullfile(covDir, [cluster_full_name '_COV.csv']);
+        covFile = fullfile(covDir, [cluster_full_name '_logCPM_COV.csv']);
     end 
     if ~exist(covFile, 'file'), covFile = fullfile(covDir, [short_name '_MRAS_COV.csv']); end
     
@@ -283,9 +332,10 @@ for k = 1:length(files)
         end
     end
     
+  
     % --- LOGGING ---
-    fprintf('%-20s | %-5d %-5d %-5d | %-5.1f %-5.1f %-5.1f | %-5d %-5d %-5d\n', ...
-        short_name, gap_cov, gap_fast, gap_imat, var_cov, var_fast, var_imat, ...
+    fprintf('%-20s | %-5d %-5d %-5d | %-5d %-5d %-5d  | %-5.1f %-5.1f %-5.1f | %-5d %-5d %-5d\n', ...
+        short_name, gap_cov, gap_fast, gap_imat,gap_cov_min, gap_fast_min, gap_imat_min, var_cov, var_fast, var_imat, ...
         lost_cov_count, lost_fast_count, lost_imat_count);
         
     
@@ -301,6 +351,10 @@ for k = 1:length(files)
     Stats(k).Gap_FAST = gap_fast;
     Stats(k).Gap_iMAT = gap_imat;
     
+    Stats(k).Gap_Min_COV = gap_cov_min;
+    Stats(k).Gap_Min_iMAT = gap_imat_min;
+    Stats(k).Gap_Min_FAST = gap_fast_min;
+
     % Variance
     Stats(k).Var_COV = var_cov;
     Stats(k).Var_FAST = var_fast;
@@ -349,7 +403,15 @@ ylabel('Gap Size (Reactions Added)');
 title('1. Functional Gap (Distance to Biomass)');
 legend({'COVlux', 'FASTCORE', 'iMAT'}, 'Location', 'best');
 xticklabels(T.Cluster); xtickangle(45); grid on;
-
+%functional gap in minimal medium
+%nexttile;
+%bar_data_min = [T.Gap_Min_COV, T.Gap_Min_FAST, T.Gap_Min_iMAT];
+%b5 = bar(bar_data_min, 'grouped');
+%b5(1).FaceColor = [0 0.45 0.74]; b5(2).FaceColor = [0.93 0.69 0.13]; b5(3).FaceColor = [0.85 0.33 0.1];
+%ylabel('Gap Size (Rxns)');
+%title('5. Minimal Media Gap (Glucose/M9 Stress Test)');
+%legend({'COVlux', 'FASTCORE', 'iMAT'}, 'Location', 'best');
+%xticklabels(T.Cluster); xtickangle(45); grid on;
 % Plot 2: Recovered Variance (Fixed Models)
 nexttile;
 bar_data_var = [T.Var_COV, T.Var_FAST, T.Var_iMAT];
@@ -417,6 +479,7 @@ function [gap_size, added_indices] = calculate_gap_and_patch(model, active_mask,
             added_indices = inactive_idx(is_added);
         end
     catch
+        fprintf("Nan")
         gap_size = NaN; added_indices = [];
     end
 end

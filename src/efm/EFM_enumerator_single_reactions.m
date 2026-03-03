@@ -38,9 +38,9 @@ eps_flux      = 1e-7;
 tol_balance   = 1e-8;
 M             = 1e3;
 badPair_count = 0;
-JACCARD_TAU   = 0.8;              % skip a candidate if Jaccard(similarity) >= 0.95 to any accepted support
+JACCARD_TAU   = 0.85;              % skip a candidate if Jaccard(similarity) >= 0.95 to any accepted support
 MAX_PER_ANCHOR = 400; % accept up to this many supports per anchor (set Inf for no cap)
-MIN_PER_ANCHOR=15;
+MIN_PER_ANCHOR=10;
 
 accepted_supps = {};    % global list of supports to compare Jaccard against
 EFM_supps  = {};        % all accepted supports (any anchor)
@@ -391,6 +391,27 @@ end
 target_indices = unique(target_indices);
 fprintf('Found %d de novo synthesis targets based on Biomass precursors.\n', length(target_indices));
 
+%%
+target_indices = [];
+
+% 1. Search by SubSystem (Best way for iML1515)
+if isfield(model_ir, 'subSystems')
+    sub_idx = find(contains(model_ir.subSystems, 'Repair', 'IgnoreCase', true) | ...
+                   contains(model_ir.subSystems, 'Maintenance', 'IgnoreCase', true));
+    target_indices = [target_indices; sub_idx(:)];
+end
+
+% 2. Search by Reaction Name as a fallback/addition
+name_idx = find(contains(rxnNames, 'Repair', 'IgnoreCase', true) | ...
+                contains(rxnNames, 'Maint', 'IgnoreCase', true));
+target_indices = [target_indices; name_idx(:)];
+
+target_indices = unique(target_indices);
+fprintf('Found %d underrepresented targets for re-enumeration.\n', length(target_indices));
+
+if isempty(target_indices)
+    error('No repair targets found! Check your model annotations.');
+end
 
 %% 6) Enumeration loop (timed checkpoint only; logic unchanged)
 for k_idx = 1:length(target_indices)
@@ -478,7 +499,7 @@ for k_idx = 1:length(target_indices)
             end
 
             if (~nullOK || ~full_suppOK)
-                fprintf("Nullity: %d, Residual: %d \n",nullOK,full_suppOK)
+                %fprintf("Nullity: %d, Residual: %d \n",nullOK,full_suppOK)
                 [ok_fix, supp_fix, v_fix] = prune_nullity_by_single_drop(S, ub, supp0, eps_flux, tol_balance, badPartner, i);
                 if ok_fix
                     res_supp_fix = norm(S(:,supp_fix) * v_fix(supp_fix), Inf);
@@ -611,12 +632,12 @@ else
     EFM_support = abs(EFM_matrix(2:end, :)) > tol_nz;
 
     % Save MAT + CSV (include new structures)
-    save('efms_matrix_iML1515_denovo.mat', ...
+    save('efms_matrix_iML1515_repair.mat', ...
          'EFM_matrix','EFM_table','rowNames','varNames','EFM_support', ...
          'EFM_anchor','EFM_supps','rxnNames','S','model_ir');
 
     writetable(EFM_table, ...
-               'efms_matrix_iML1515_denovo.csv', ...
+               'efms_matrix_iML1515_repair.csv', ...
                'WriteRowNames', true);
 
     fprintf('Saved EFM matrix: (%d x %d) = [residual; %d reactions] x %d EFMs\n', ...

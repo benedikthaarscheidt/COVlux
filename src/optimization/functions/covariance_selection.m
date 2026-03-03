@@ -1,4 +1,4 @@
-function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M,rxnNames, verbose, plotDir, clusterName, BETA, SPARSITY_WEIGHT)
+function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M,rxnNames, verbose, plotDir, clusterName, BETA, SPARSITY_WEIGHT,div_by_reactions)
 % COVARIANCE-GUIDED SELECTION (Geometric Batch Pruning)
 %
 % 1. RANK: Prioritize "High Signal" EFMs.
@@ -7,9 +7,9 @@ function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M,rxnN
 % 4. CALIBRATE: Use CVX to enforce final weights.
     fprintf('\n=== Covariance Selection (Geometric Batch Pruning) ===\n');
     [n_rxn, n_efm] = size(E);
-    
+ 
     % --- CONFIGURATION ---
-    K_INIT          = 4000;      % Start with Top 3000
+    K_INIT          = 6000;      % Start with Top 3000
     MIN_EFMS        = 0;         % Prune down to this number
     VAR_FLOOR       = 0;         
     fprintf("Sparsity weight: %.2f \n", SPARSITY_WEIGHT);
@@ -23,27 +23,33 @@ function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M,rxnN
     valid_idx = find(valid_efms);
     E_norm = E_norm(:, valid_idx);
     n_valid = length(valid_idx);
-    % =========================================================================
-    % 2. RANKING (Covariance + Magnitude)
-    % =========================================================================
-    % Covariance Score
-    cov_all = diag(E_norm' * M * E_norm);
-    
-    % Expression Score
+
+    cov_raw = diag(E_norm' * M * E_norm);
+
     log_expr = log10(diag(M) + 1);
     log_expr = log_expr / max(log_expr);
     expr_raw = abs(E_norm)' * log_expr;
+    
+    % 2. Apply Length Penalty (The Great Equalizer)
+    if div_by_reactions
+        efm_lengths = sum(abs(E_norm) > 1e-8, 1)';
+        efm_lengths(efm_lengths == 0) = 1; % Prevent division by zero
+        
+        cov_raw  = cov_raw ./ efm_lengths;
+        expr_raw = expr_raw ./ efm_lengths;
+    end
+    
+    % 3. Normalize scores to [0, 1] for clean combining
+    cov_score  = (cov_raw - min(cov_raw)) / (max(cov_raw) - min(cov_raw));
     expr_score = (expr_raw - min(expr_raw)) / (max(expr_raw) - min(expr_raw));
     
-    % Combined Score (Signal Strength)
-    cov_score = (cov_all - min(cov_all)) / (max(cov_all) - min(cov_all));
+    % 4. Combine, Sort, and Pool
     final_score = (1 - BETA) * cov_score + BETA * expr_score;
-    
     [~, idx_sorted] = sort(final_score, 'descend');
     
-    % Initial Pool
     initial_indices = idx_sorted(1:min(K_INIT, n_valid));
     current_set = initial_indices;
+    
     
     % =========================================================================
     % 3. BACKWARD ELIMINATION LOOP (Batch Mode)
@@ -67,7 +73,7 @@ function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M,rxnN
         iter_count = iter_count + 1;
         k = length(current_set);
         
-        % Calculate Batch Size: 2% of current set, minimum 1
+        
         n_to_remove = max(1, floor(k * 0.02)); 
         
         % Ensure we don't overshoot MIN_EFMS
@@ -89,6 +95,9 @@ function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M,rxnN
             
             % 3. Metrics
             current_variances = diag(A_clean);
+            if any(current_variances<0)
+                warning('there are negative variaces')
+            end 
             M_recon = E_cur * A_clean * E_cur';
             var_cur = sum(diag(M_recon)) / total_var_data;
             
@@ -156,7 +165,7 @@ function [A_final, E_reduced, L_final, metrics] = covariance_selection(E, M,rxnN
     % =========================================================================
     % 4. SELECTION: CLOSEST TO IDEAL POINT
     % =========================================================================
-    fprintf('  Step 2: Selecting Model (Closest to Ideal Point)...\n');
+    fprintf('  Step 2: Selecting Model \n');
     
     x = k_history(:);
     y = var_history(:);

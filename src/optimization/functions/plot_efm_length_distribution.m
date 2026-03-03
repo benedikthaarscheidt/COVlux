@@ -72,17 +72,32 @@ function plot_efm_length_distribution(E, rxnNames, saveDir, clusterName)
     % --- SAVE OUTPUTS ---
     if nargin >= 3 && ~isempty(saveDir)
         if nargin >= 4
-            filename = fullfile(saveDir, sprintf('%s_EFM_length_distribution.png', clusterName));
+            baseName = sprintf('%s_EFM_length_distribution', clusterName);
         else
-            filename = fullfile(saveDir, 'EFM_length_distribution.png');
+            baseName = 'EFM_length_distribution';
         end
         
-        % Save as PNG and PDF for high quality
-        saveas(fig, filename);
-        saveas(fig, strrep(filename, '.png', '.pdf'));
+        fullPathPNG = fullfile(saveDir, [baseName, '.png']);
+        fullPathPDF = fullfile(saveDir, [baseName, '.pdf']);
+        fullPathFIG = fullfile(saveDir, [baseName, '.fig']);
         
-        % Also save as .fig for MATLAB editing
-        saveas(fig, strrep(filename, '.png', '.fig'));
+        % Set PaperPositionMode to auto so the printed size matches the figure
+        fig.PaperPositionMode = 'auto';
+        
+        % Suppress the UI component warning temporarily
+        warnState = warning('off', 'MATLAB:print:IncludeUIInOutput');
+        
+        % Save PNG: NO -bestfit (it's a raster format)
+        print(fig, fullPathPNG, '-dpng', '-r150');
+        
+        % Save PDF: use -bestfit to fit the figure to the page
+        print(fig, fullPathPDF, '-dpdf', '-bestfit');
+        
+        % Save .fig normally
+        saveas(fig, fullPathFIG);
+        
+        % Restore warning state
+        warning(warnState);
     end
     
     close(fig);

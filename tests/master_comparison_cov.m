@@ -152,15 +152,15 @@ if isempty(bio_idx), bio_idx = find(contains(model_base.rxns, 'BIOMASS'),1); end
 model_base.c = zeros(n_rxns_orig,1); model_base.c(bio_idx) = 1;
 
 % Setup PhPP Indices
-glc_idx = find(contains(model_base.rxns, 'EX_glc__D_e') & contains(model_base.rxns, '_b'), 1);
-o2_idx  = find(contains(model_base.rxns, 'EX_o2_e') & contains(model_base.rxns, '_b'), 1);
+glc_idx = find(contains(model_base.rxns, 'EX_glc__D_e') & contains(model_base.rxns, '_f'), 1);
+o2_idx  = find(contains(model_base.rxns, 'EX_o2_e') & contains(model_base.rxns, '_f'), 1);
 do_phpp = ~isempty(glc_idx) && ~isempty(o2_idx);
 
 % Create maximal and minimal base models
 model_max = model_base;   % all exchanges open (default)
 
 model_min = model_base;
-exc_idx = find(contains(model_min.rxns, 'EX_'));   % Identify exchange reactions
+exc_idx = find(startsWith(lower(rxnNames), 'ex_') & endsWith(lower(rxnNames), '_b'));  % Identify exchange reactions
 model_min.lb(exc_idx) = 0;
 model_min.ub(exc_idx) = 0;                         % Close all exchanges
 
@@ -174,14 +174,16 @@ for i = 1:length(minimal_substrates)
         warning('Minimal substrate %s not found in model.', minimal_substrates{i});
     end
 end
+
+
 % Set specific uptake limits for glucose and oxygen
 glc_idx_min = find(strcmpi(model_min.rxns, 'ex_glc__d_e_b') | strcmpi(model_min.rxns, 'ex_glc_e_b'));
 if ~isempty(glc_idx_min)
-    model_min.ub(glc_idx_min) = 10;   % 10 mmol/gDW·h
+    model_min.ub(glc_idx_min) = 1000;   % 10 mmol/gDW·h
 end
 o2_idx_min = find(strcmpi(model_min.rxns, 'ex_o2_e_b'));
 if ~isempty(o2_idx_min)
-    model_min.ub(o2_idx_min) = 20;    % 20 mmol/gDW·h
+    model_min.ub(o2_idx_min) = 1000;    % 20 mmol/gDW·h
 end
 
 % Define tasks for AA% and MTA% (used repeatedly)
@@ -198,8 +200,8 @@ stats_out = struct([]);
 opts_lp = optimoptions('linprog','Display','none');
 
 % --- HEADER (now includes both maximal and minimal columns) ---
-fprintf('\n%-28s | %-5s | %-5s | %-8s | %-8s | %-6s | %-8s | %-6s | %-5s | %-6s | %-5s | %-5s | %-5s | %-5s | %-5s | %-8s | %-8s | %-5s | %-5s | %-6s | %-30s\n', ...
-    'Cluster (Method)', 'Keep', 'Lost', 'Bio_max', 'Bio_min', 'LCC%', 'AlgConn', 'FVA%', 'Block', 'FP', 'PhPP', 'AA_max', 'AA_min', 'MTA_max', 'MTA_min', 'DeadE', 'Var(X)', 'CorrM', 'Coh.', 'nCC(L)', 'Sz(L)%', 'Most_Pruned_Cat');
+fprintf('\n%-28s | %-5s | %-5s | %-8s | %-8s | %-6s | %-6s | %-8s | %-6s | %-5s | %-6s | %-5s | %-5s | %-5s | %-5s | %-5s | %-8s | %-8s | %-8s | %-5s | %-6s | %-30s\n', ...
+    'Cluster (Method)', 'Keep', 'Lost', 'Bio_max', 'Bio_min', 'LCC%', 'nCC(F)', 'AlgConn', 'FVA%', 'Block', 'FP', 'PhPP', 'AA_max', 'AA_min', 'MTA_max', 'MTA_min', 'DeadE', 'Var(X)', 'CorrM', 'Coh.', 'nCC(L)', 'Sz(L)%', 'Most_Pruned_Cat');
 fprintf('%s\n', repmat('-', 1, 300));
 
 for k = 1:length(files)
@@ -346,23 +348,43 @@ for k = 1:length(files)
             end
         end
 
-        % --- 4. DUAL CONNECTIVITY (LCC% and AlgConn) ---
-        S_kept = model_max.S;
-        S_kept(:, lost_indices) = 0;
-        Adj = [sparse(n_mets, n_mets), abs(S_kept) ~= 0;
-               (abs(S_kept) ~= 0)', sparse(n_rxns_orig, n_rxns_orig)];
-        G_kept = graph(Adj);
-        bins = conncomp(G_kept);
-        bin_counts = groupcounts(bins');
-        [max_comp_size, big_bin_idx] = max(bin_counts);
-        lcc_pct = (max_comp_size / (n_mets + n_rxns_orig)) * 100;
-
+        % --- 4. DUAL CONNECTIVITY (LCC%, AlgConn, and Final Components) ---
+        % Extract ONLY the surviving reactions
+        S_final = model_max.S(:, curr_survivors_idx);
+        
+        % Find ONLY the metabolites that are still participating in the network
+        active_mets_mask = any(S_final ~= 0, 2);
+        S_final_active = S_final(active_mets_mask, :);
+        
+        n_mets_final = size(S_final_active, 1);
+        n_rxns_final = size(S_final_active, 2);
+        
+        % Build Bipartite Adjacency Matrix (Active Mets + Kept Rxns)
+        Adj_final = [sparse(n_mets_final, n_mets_final), abs(S_final_active) ~= 0;
+                     (abs(S_final_active) ~= 0)', sparse(n_rxns_final, n_rxns_final)];
+                 
+        G_final = graph(Adj_final);
+        bins_final = conncomp(G_final);
+        
+        % 1. Number of Components in Final Model
+        num_final_components = max(bins_final);
+        
+        % 2. Largest Connected Component (LCC%)
+        bin_counts = groupcounts(bins_final');
+        max_comp_size = max(bin_counts);
+        
+        % LCC% is relative to the size of the *retained* network
+        lcc_pct = (max_comp_size / (n_mets_final + n_rxns_final)) * 100;
+        
+        % 3. Algebraic Connectivity
         alg_conn = 0;
         if lcc_pct > 0.1
             try
-                nodes_lcc = find(bins == big_bin_idx);
+                % Isolate the largest component subgraph for Laplacian
+                [~, big_bin_idx] = max(bin_counts);
+                nodes_lcc = find(bins_final == big_bin_idx);
                 if length(nodes_lcc) > 2
-                    G_sub = subgraph(G_kept, nodes_lcc);
+                    G_sub = subgraph(G_final, nodes_lcc);
                     L = laplacian(G_sub);
                     evals = eigs(L + 1e-9*speye(size(L)), 2, 'smallestabs');
                     evals = sort(real(evals));
@@ -398,12 +420,12 @@ for k = 1:length(files)
         end
 
         % --- 6. DEAD-END METABOLITES (using structure only) ---
-        has_prod = any(S_kept > 0, 2);
-        has_cons = any(S_kept < 0, 2);
+        S_method = model_max.S(:, curr_survivors_idx);
+        has_prod = any(S_method > 1e-9, 2);  % Metabolite is produced by at least one kept reaction
+        has_cons = any(S_method < -1e-9, 2); % Metabolite is consumed by at least one kept reaction
         internal_mets = ~contains(model_max.mets, '_e') & ~contains(model_max.mets, '_b');
         dead_ends = internal_mets & ((has_prod & ~has_cons) | (~has_prod & has_cons));
         num_dead_ends = sum(dead_ends);
-
         % ========== LOOP OVER MEDIA FOR BIOMASS, AA%, MTA% ==========
         % We'll compute for both media and store results
         for med_idx = 1:2   % 1=maximal, 2=minimal
@@ -507,8 +529,8 @@ for k = 1:length(files)
         row_name = sprintf('%s (%s)', cluster_full_name, curr_name);
         if strlength(row_name) > 28, row_name = extractBefore(row_name, 28); end
 
-        fprintf('%-28s | %-5d | %-5d | %-8.4f | %-8.4f | %-6.1f | %-8.4f | %-6.1f | %-5d | %-6d | %-5.4f | %-5.0f | %-5.0f | %-5.0f | %-5.0f | %-5d | %-8.2e | %-8.2e | %-5.2f | %-5d | %-6.1f | %-30s\n', ...
-            row_name, num_kept, num_lost, biomass_max, biomass_min, lcc_pct, alg_conn, functional_ratio*100, ...
+        fprintf('%-28s | %-5d | %-5d | %-8.4f | %-8.4f | %-6.1f | %-6d | %-8.4f | %-6.1f | %-5d | %-6d | %-5.4f | %-5.0f | %-5.0f | %-5.0f | %-5.0f | %-5d | %-8.2e | %-8.2e | %-5.2f | %-5d | %-6.1f | %-30s\n', ...
+            row_name, num_kept, num_lost, biomass_max, biomass_min, lcc_pct, num_final_components, alg_conn, functional_ratio*100, ...
             blocked_count, falsepositives_count, avg_phpp_max, aa_max, aa_min, mta_max, mta_min, num_dead_ends, var_per_rxn, corr_mass, coherence, ...
             num_lost_components, largest_lost_fraction, sub_str);
 
@@ -521,6 +543,7 @@ for k = 1:length(files)
         stats_out(s_idx).Biomass_max = biomass_max;
         stats_out(s_idx).Biomass_min = biomass_min;
         stats_out(s_idx).LCC_Pct = lcc_pct;
+        stats_out(s_idx).Final_NumComponents = num_final_components; 
         stats_out(s_idx).Alg_Connectivity = alg_conn;
         stats_out(s_idx).FunctionalPct_FVA = functional_ratio * 100;
         stats_out(s_idx).BlockedSurvivors = blocked_count;
@@ -572,6 +595,223 @@ fprintf('\n\n=== SUMMARY REPORT (by Method) ===\n');
 disp(prof_report);
 writetable(prof_report, fullfile(resultsDir, 'SUMMARY_REPORT_BY_METHOD.csv'));
 
+%%
+fprintf('\n=========================================================================================\n');
+fprintf('   STATISTICAL SIGNIFICANCE (Exact Paired Permutation Test, Paired by Cluster)\n');
+fprintf('=========================================================================================\n');
+fprintf('%-25s | %-25s | %-25s\n', 'Metric', 'COVlux vs iMAT (p-value)', 'COVlux vs FASTCORE (p-value)');
+fprintf('%s\n', repmat('-', 1, 85));
+
+% Make sure we are using the flat results table, sorted by cluster to ensure perfect pairing
+T_stat = sortrows(struct2table(stats_out), 'Cluster');
+
+% Define the exact metrics you asked for (matching the struct field names)
+metrics_to_test = {
+    'Biomass_max',       'Biomass (Max Media)';
+    'LCC_Pct',           'LCC (%)';
+    'Final_NumComponents','nCC (Final Components)'; 
+    'Alg_Connectivity',  'Algebraic Connectivity';
+    'FunctionalPct_FVA', 'FVA (%)';
+    'BlockedSurvivors',  'Blocked Reactions';
+    'AA_max',            'AA Yield (Max Media)';
+    'AA_min',            'AA Yield (Min Media)';
+    'MTA_max',           'MTA Yield (Max Media)';
+    'MTA_min',           'MTA Yield (Min Media)';
+    'AvgVariance',       'Var(X) (Avg Variance)';
+    'Lost_NumComponents','nCC(L) (Lost Components)';
+    'Lost_LargestComponentPct', 'Size L (%)'
+};
+
+% Loop through each metric and compute exact permutation p-values
+for i = 1:size(metrics_to_test, 1)
+    col_name = metrics_to_test{i, 1};
+    disp_name = metrics_to_test{i, 2};
+    
+    % Check if the column exists
+    if ~ismember(col_name, T_stat.Properties.VariableNames)
+        fprintf('%-25s | %-25s | %-25s\n', disp_name, 'N/A (Not Found)', 'N/A (Not Found)');
+        continue;
+    end
+    
+    % Extract paired arrays
+    data_cov  = T_stat.(col_name)(strcmp(T_stat.Method, 'COVLUX'));
+    data_imat = T_stat.(col_name)(strcmp(T_stat.Method, 'iMAT'));
+    data_fast = T_stat.(col_name)(strcmp(T_stat.Method, 'FASTCORE'));
+    
+    % Ensure lengths match before testing
+    if length(data_cov) == length(data_imat) && length(data_cov) == length(data_fast) && length(data_cov) > 2
+        
+        valid_imat = ~isnan(data_cov) & ~isnan(data_imat);
+        valid_fast = ~isnan(data_cov) & ~isnan(data_fast);
+        
+        % 1. COVlux vs iMAT (Permutation Test)
+        try 
+            p_imat = exact_paired_permutation(data_cov(valid_imat), data_imat(valid_imat)); 
+        catch
+            p_imat = NaN; 
+        end
+        
+        % 2. COVlux vs FASTCORE (Permutation Test)
+        try
+            p_fast = exact_paired_permutation(data_cov(valid_fast), data_fast(valid_fast));
+        catch
+            p_fast = NaN;
+        end
+        
+        % Format strings with significance asterisks
+        str_imat = format_pval(p_imat);
+        str_fast = format_pval(p_fast);
+        
+        fprintf('%-25s | %-25s | %-25s\n', disp_name, str_imat, str_fast);
+    else
+        fprintf('%-25s | %-25s | %-25s\n', disp_name, 'Data alignment error', 'Data alignment error');
+    end
+end
+fprintf('=========================================================================================\n');
+fprintf('* p < 0.05, ** p < 0.01, *** p < 0.001\n\n');
+
+%%
+% =========================================================================
+% VISUALIZATION: SUPERIORITY HEATMAP (Effect Size + Exact Permutation Sig)
+% =========================================================================
+fprintf('\nGenerating Superiority Heatmap (with Exact Permutation P-values)...\n');
+
+% Ensure T_stat is sorted by cluster for paired testing
+T_stat = sortrows(struct2table(stats_out), 'Cluster');
+
+% Define metrics and whether "Higher is Better" (1) or "Lower is Better" (-1)
+metrics_config = {
+    'Biomass_max',       'Biomass (Rich Media)',   1;
+    'LCC_Pct',           'LCC (%)',                1;
+    'Final_NumComponents','nCC (Final Comps)',    -1;
+    'Alg_Connectivity',  'Alg. Connectivity',      1;
+    'FunctionalPct_FVA', 'FVA (%)',                1;
+    'BlockedSurvivors',  'Blocked Rxns',          -1;
+    'AA_max',            'AA Yield (Rich)',        1;
+    'AA_min',            'AA Yield (Minimal)',     1;
+    'MTA_max',           'MTA Yield (Rich)',       1;
+    'MTA_min',           'MTA Yield (Minimal)',    1;
+    'AvgVariance',       'Var(X) (Covariance)',    1
+};
+
+num_metrics = size(metrics_config, 1);
+log2FC_matrix = zeros(num_metrics, 2); % Col 1: vs iMAT, Col 2: vs FASTCORE
+pval_text = cell(num_metrics, 2);
+
+for i = 1:num_metrics
+    col = metrics_config{i, 1};
+    direction = metrics_config{i, 3};
+    
+    % Check if the column exists
+    if ~ismember(col, T_stat.Properties.VariableNames)
+        continue;
+    end
+    
+    % Extract paired data
+    d_cov  = T_stat.(col)(strcmp(T_stat.Method, 'COVLUX'));
+    d_imat = T_stat.(col)(strcmp(T_stat.Method, 'iMAT'));
+    d_fast = T_stat.(col)(strcmp(T_stat.Method, 'FASTCORE'));
+    
+    % Compute Median for the Fold Change colors
+    med_cov  = median(d_cov, 'omitnan');
+    med_imat = median(d_imat, 'omitnan');
+    med_fast = median(d_fast, 'omitnan');
+    
+    % 1. Compute Standardized Effect Size (Cohen's d approximation)
+    % Calculate pooled standard deviation
+    pool_std_imat = sqrt((std(d_cov, 'omitnan')^2 + std(d_imat, 'omitnan')^2) / 2);
+    pool_std_fast = sqrt((std(d_cov, 'omitnan')^2 + std(d_fast, 'omitnan')^2) / 2);
+    
+    % Prevent division by zero if variance is completely flat
+    if pool_std_imat == 0; pool_std_imat = eps; end
+    if pool_std_fast == 0; pool_std_fast = eps; end
+    
+    % Calculate Effect Size (Distance adjusted for direction)
+    eff_imat = direction * (med_cov - med_imat) / pool_std_imat;
+    eff_fast = direction * (med_cov - med_fast) / pool_std_fast;
+    
+    % Cap extreme values for color scaling (An effect size > 3 is considered "Huge")
+    log2FC_matrix(i, 1) = max(-4, min(4, eff_imat)); 
+    log2FC_matrix(i, 2) = max(-4, min(4, eff_fast));
+    
+    % 2. Compute P-values using Exact Paired Permutation Test
+    try 
+        valid_imat = ~isnan(d_cov) & ~isnan(d_imat);
+        if sum(valid_imat) > 2
+            p_imat = exact_paired_permutation(d_cov(valid_imat), d_imat(valid_imat)); 
+        else
+            p_imat = 1;
+        end
+    catch
+        p_imat = 1; 
+    end
+    
+    try 
+        valid_fast = ~isnan(d_cov) & ~isnan(d_fast);
+        if sum(valid_fast) > 2
+            p_fast = exact_paired_permutation(d_cov(valid_fast), d_fast(valid_fast)); 
+        else
+            p_fast = 1;
+        end
+    catch
+        p_fast = 1; 
+    end
+    
+    % 3. Assign Asterisks
+    pval_text{i, 1} = get_asterisks(p_imat);
+    pval_text{i, 2} = get_asterisks(p_fast);
+end
+
+% --- DRAW THE HEATMAP ---
+f_heat = figure('Name', 'Method Superiority', 'Position', [200, 200, 600, 700], 'Color', 'w', 'Visible', 'off');
+
+% Create a custom Red (Worse) to White (Neutral) to Blue (Better) colormap
+cmap = custom_red_white_blue();
+colormap(cmap);
+
+% Draw image
+imagesc(log2FC_matrix);
+
+% Center the color axis firmly at zero so white = exactly equal
+max_val = max(abs(log2FC_matrix(:)));
+if max_val == 0; max_val = 1; end % prevent caxis([0 0]) crash
+caxis([-max_val, max_val]); 
+
+% Formatting
+set(gca, 'YTick', 1:num_metrics, 'YTickLabel', metrics_config(:, 2), 'FontSize', 11);
+set(gca, 'XTick', 1:2, 'XTickLabel', {'COVLUX vs iMAT', 'COVLUX vs FASTCORE'}, 'FontSize', 12, 'FontWeight', 'bold');
+xtickangle(0);
+
+% Add Colorbar
+cb = colorbar;
+cb.Label.String = 'Relative Improvement';
+cb.Label.FontSize = 12;
+cb.Label.FontWeight = 'bold';
+
+title('COVLUX Superiority & Significance Matrix', 'FontSize', 14, 'FontWeight', 'bold');
+
+% Overlay the Significance Asterisks
+for i = 1:num_metrics
+    for j = 1:2
+        txt = pval_text{i, j};
+        % If it's a huge improvement, make text white so it shows up on dark blue background
+        if abs(log2FC_matrix(i,j)) > (max_val * 0.6)
+            txt_color = 'w';
+        else
+            txt_color = 'k';
+        end
+        text(j, i, txt, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', ...
+             'FontSize', 16, 'FontWeight', 'bold', 'Color', txt_color);
+    end
+end
+
+% Save the plot
+plotDir = fullfile(resultsDir, 'plots');
+if ~exist(plotDir, 'dir'), mkdir(plotDir); end
+saveas(f_heat, fullfile(plotDir, 'Fig_Significance_Heatmap.png'));
+exportgraphics(f_heat, fullfile(plotDir, 'Fig_Significance_Heatmap.pdf'), 'ContentType', 'vector');
+
+fprintf('Saved Superiority Heatmap to %s\n', plotDir);
 %% 8. VISUALIZATION (ALL 10 FIGURES) - SMART MEDIA FILTERING
 fprintf('\n=== Generating Visualization Plots (Smart Media Filtering) ===\n');
 
@@ -637,11 +877,33 @@ T_long.Eff_Del_AA  = T_long.AA ./ (T_long.LostCount + eps);
 T_long.Eff_Del_MTA = T_long.MTA ./ (T_long.LostCount + eps);
 T_long.Eff_Del_Mod = T_long.FragRatio ./ (T_long.LostCount + eps);
 
-% =========================================================================
-% 3. CREATE T_UNIQUE
-% =========================================================================
-% Extract only the 'max' rows. Because we do this AFTER all calculations, 
-% T_unique safely inherits every single column (including .Method).
+
+% Standardize quality metrics (0 to 1)
+Q_AA  = T_long.AA / 100;
+Q_MTA = T_long.MTA / 100;
+Q_LCC = T_long.LCC_Pct / 100;
+Q_Bio = T_long.Biomass ./ (max(T_long.Biomass) + eps);
+Q_Mod = max(0, 1 - T_long.FragRatio);
+
+% Variance Density: Ratio of kept information concentration
+max_var_density = max(T_long.AvgVariance) + eps;
+Q_Var = T_long.AvgVariance ./ max_var_density;
+
+% Harmonic Mean F-Scores (Quality vs. Pruning Magnitude)
+P = T_long.PruningRate;
+T_long.F_AA  = 2 * (Q_AA  .* P) ./ (Q_AA  + P + eps);
+T_long.F_MTA = 2 * (Q_MTA .* P) ./ (Q_MTA + P + eps);
+T_long.F_Bio = 2 * (Q_Bio .* P) ./ (Q_Bio + P + eps);
+T_long.F_LCC = 2 * (Q_LCC .* P) ./ (Q_LCC + P + eps);
+T_long.F_Mod = 2 * (Q_Mod .* P) ./ (Q_Mod + P + eps);
+T_long.F_Var = 2 * (Q_Var .* P) ./ (Q_Var + P + eps);
+
+% F_nCC: Structural Stability F-score
+maxCC = max(T_long.Lost_NumComponents) + eps;
+Q_nCC = (1 - (T_long.Lost_NumComponents ./ maxCC));
+T_long.F_nCC = 2 * (Q_nCC .* P) ./ (Q_nCC + P + eps);
+
+% Final Update to T_unique for structural consistency
 T_unique = T_long(T_long.Media == 'max', :);
 
 % =========================================================================
@@ -964,6 +1226,85 @@ lg = legend([hMax, hMin], {'Maximal Media', 'Minimal Media'}, 'Orientation', 'ho
 lg.Layout.Tile = 'north';
 title(t10, 'Fig 10: Raw Metrics (Wiring, Topology, Modularity, Function)', 'FontSize', 14, 'FontWeight', 'bold');
 saveas(f10, fullfile(plotsDir, 'Fig10_Raw_Metrics.png')); close(f10);
+%%
+% FIGURE 13: GLOBAL EFFICIENCY SUITE (Modularity & Yield)
+% =========================================================================
+f13 = figure('Position', [50, 50, 1400, 900], 'Name', 'Global Efficiency', 'Color', 'w', 'Visible', 'off');
+t13 = tiledlayout(2, 3, 'TileSpacing', 'tight', 'Padding', 'compact');
+
+% Updated metrics list: Swapped Var for Mod
+f_metrics_all = {'F_Bio', 'F_AA', 'F_MTA', 'F_LCC', 'F_Mod', 'F_nCC'};
+f_titles_all  = {'Biomass Efficiency', 'AA Yield Efficiency', 'MTA Yield Efficiency', ...
+                 'Integrity Efficiency (LCC)', 'Modularity Balance', 'Structural Stability (nCC)'};
+
+for i = 1:6
+    ax = nexttile; hold on;
+    curr_f = f_metrics_all{i};
+    is_dep = ismember(curr_f, media_dep_vars);
+    
+    for m = 1:3
+        m_name = methods_order{m}; m_color = colors_method(m, :);
+        if is_dep
+            % Max Media: Solid, Offset Left
+            idx_max = strcmp(T_long.Method, m_name) & (T_long.Media == 'max');
+            if any(idx_max), bc = boxchart(m*ones(sum(idx_max),1)-0.18, T_long.(curr_f)(idx_max));
+                set(bc, 'BoxFaceColor', m_color, 'MarkerColor', m_color, 'BoxFaceAlpha', 0.85, 'BoxWidth', 0.3); end
+            % Min Media: Ghost, Offset Right
+            idx_min = strcmp(T_long.Method, m_name) & (T_long.Media == 'min');
+            if any(idx_min), bc = boxchart(m*ones(sum(idx_min),1)+0.18, T_long.(curr_f)(idx_min));
+                set(bc, 'BoxFaceColor', m_color, 'MarkerColor', m_color, 'BoxFaceAlpha', 0.25, 'BoxWidth', 0.3); end
+        else
+            % Structural Truth: Full Width, Solid
+            idx = strcmp(T_unique.Method, m_name);
+            if any(idx), bc = boxchart(m*ones(sum(idx),1), T_unique.(curr_f)(idx));
+                set(bc, 'BoxFaceColor', m_color, 'MarkerColor', m_color, 'BoxFaceAlpha', 0.85, 'BoxWidth', 0.5); end
+        end
+    end
+    
+    set(gca, 'XTick', 1:3, 'XTickLabel', methods_order, 'FontName', 'Arial', 'FontSize', 10);
+    grid on; ax.GridAlpha = 0.3; ax.GridLineStyle = ':';
+    ylabel('F1 Score (Efficiency)', 'FontWeight', 'bold'); title(f_titles_all{i}, 'FontSize', 12);
+end
+
+% Standard Journal Legend
+h_max_leg = patch(NaN, NaN, [0.4 0.4 0.4], 'FaceAlpha', 0.85, 'EdgeColor', 'k');
+h_min_leg = patch(NaN, NaN, [0.4 0.4 0.4], 'FaceAlpha', 0.25, 'EdgeColor', 'k');
+lg = legend([h_max_leg, h_min_leg], {'Maximal Media', 'Minimal Media'}, 'Orientation', 'horizontal');
+lg.Layout.Tile = 'north';
+
+saveas(f13, fullfile(plotsDir, 'Fig13_Global_Efficiency_Suite.png')); close(f13);
+%%
+% =========================================================================
+% FIGURE 14: ABSOLUTE PERFORMANCE & PATHOLOGIES 
+% =========================================================================
+f14 = figure('Position', [100, 100, 1600, 950], 'Name', 'Absolute Pathologies', 'Color', 'w', 'Visible', 'off');
+t14 = tiledlayout(2, 4, 'TileSpacing', 'tight', 'Padding', 'compact');
+
+raw_metrics_ext = {'BlockedSurvivors', 'DeadEnd_Metabolites', 'Final_NumComponents', ...
+                   'Lost_NumComponents', 'Lost_LargestComponentPct', 'FunctionalPct_FVA', ...
+                   'Alg_Connectivity', 'AvgVariance'};
+
+raw_titles_ext  = {'Blocked Reactions (#)', 'Dead-End Metabolites (#)', 'Model Fragmentation (nCC)', ...
+                   'Pruned Chunk Count', 'Max Pruned Size (%)', 'Functional Reaction %', ...
+                   'Algebraic Connectivity', 'Variance Density'};
+
+for i = 1:8
+    ax = nexttile; hold on;
+    curr_r = raw_metrics_ext{i};
+    % Note: These are structural truths, plotted for the 'max' condition context
+    for m = 1:3
+        m_name = methods_order{m}; m_color = colors_method(m, :);
+        idx = strcmp(T_unique.Method, m_name);
+        if any(idx)
+            bc = boxchart(m*ones(sum(idx),1), T_unique.(curr_r)(idx));
+            set(bc, 'BoxFaceColor', m_color, 'MarkerColor', m_color, 'BoxFaceAlpha', 0.8, 'BoxWidth', 0.5); 
+        end
+    end
+    set(gca, 'XTick', 1:3, 'XTickLabel', methods_order, 'FontName', 'Arial', 'FontSize', 10);
+    grid on; ax.GridAlpha = 0.3; title(raw_titles_ext{i}, 'FontSize', 11, 'FontWeight', 'bold');
+end
+title(t14, 'Fig 14: Absolute Physical Benchmarks across 12 Samples', 'FontSize', 14);
+saveas(f14, fullfile(plotsDir, 'Fig14_Absolute_Structural_Benchmarks.png')); close(f14);
 %% 9. CORRELATION ANALYSIS (PDF with strict data parsing)
 fprintf('=== Generating Correlation PDF Report ===\n');
 
@@ -1103,3 +1444,67 @@ function [RH_indices, RL_indices] = getExpressionSets(model, geneExpression)
     RL_indices = RL_tmp(:);
     fprintf("Length of RH indices: %d \n", length(RH_indices));
 end
+function str = format_pval(p)
+    if isnan(p)
+        str = 'NaN (Identical)';
+    elseif p < 0.001
+        str = sprintf('%.2e ***', p);
+    elseif p < 0.01
+        str = sprintf('%.4f **', p);
+    elseif p < 0.05
+        str = sprintf('%.4f *', p);
+    else
+        str = sprintf('%.4f (n.s.)', p);
+    end
+
+end
+
+function ast = get_asterisks(p)
+    if p < 0.001
+        ast = '***';
+    elseif p < 0.01
+        ast = '**';
+    elseif p < 0.05
+        ast = '*';
+    else
+        ast = 'n.s.';
+    end
+end
+
+% Helper Function for Diverging Colormap
+function cmap = custom_red_white_blue()
+    % Interpolates Red -> White -> Blue
+    n = 256;
+    mid = round(n/2);
+    cmap = zeros(n, 3);
+    
+    % Red to White
+    cmap(1:mid, 1) = 1;
+    cmap(1:mid, 2) = linspace(0.1, 1, mid);
+    cmap(1:mid, 3) = linspace(0.1, 1, mid);
+    
+    % White to Blue
+    cmap(mid+1:end, 1) = linspace(1, 0.1, n-mid);
+    cmap(mid+1:end, 2) = linspace(1, 0.4, n-mid);
+    cmap(mid+1:end, 3) = 1;
+end
+
+function p_val = exact_paired_permutation(x, y)
+    % Computes the EXACT two-tailed p-value for paired data.
+    % It tests all 2^N possible sign combinations of the differences.
+    d = x(:) - y(:);
+    N = length(d);
+    
+    if all(d == 0)
+        p_val = 1;
+        return;
+    end
+    
+    obs_mean = mean(d);
+    bin_matrix = dec2bin(0:(2^N - 1)) - '0'; 
+    signs = 2 * bin_matrix - 1; 
+    null_dist = mean(signs .* abs(d)', 2);
+    
+    p_val = sum(abs(null_dist) >= abs(obs_mean)) / (2^N);
+end
+

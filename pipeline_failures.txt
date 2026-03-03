@@ -1,8 +1,6 @@
-[23-Feb-2026 14:07:55] Script: COVlux | Error: Unable to find file or directory '/Users/benedikthaarscheidt/COVlux/data/models/E_coli/efms/efms_matrix_iML1515_full_merged.mat'.
-[23-Feb-2026 14:11:03] Script: COVlux | Error: Unrecognized field name "rxnNames".
-[23-Feb-2026 17:28:40] Script: analyze_biological_state | Error: No removal logs (*_removal_log.csv) found in /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-23_15-41-25/log_dir
-[27-Feb-2026 16:31:09] Script: master_comparison_cov | Error: Unrecognized table variable name 'AA_Synthesis_Pct'.
-[27-Feb-2026 17:34:42] Script: master_comparison_cov | Error: Undefined function 'lt' for input arguments of type 'cell'.
-[27-Feb-2026 18:29:59] Script: biomass_distance | Error: The value of 'destination' is invalid. Unable to create output file '/Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-26_23-39-39/plots/Functional_Gap_and_Variance.pdf', No such file or directory.
-[27-Feb-2026 18:30:40] Script: analyze_biological_state | Error: Invalid or missing path: /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-02-26_23-39-39/plots/cluster_0_Subsystem_Trajectory.png
-[28-Feb-2026 22:46:02] Script: master_comparison_cov | Error: Unrecognized function or variable 'avg_phpp_max'.
+[02-Mar-2026 12:10:53] Script: COVlux | Error: The 'bestfit' option is only valid for page formats and printers.
+[02-Mar-2026 12:10:53] Script: master_comparison_cov | Error: Unrecognized table variable name 'Biomass_max'.
+[02-Mar-2026 12:10:54] Script: biomass_distance | Error: No result CSVs found.
+[02-Mar-2026 15:56:01] Script: master_comparison_cov | Error: Unrecognized function or variable 'rxnNames'.
+[02-Mar-2026 15:56:02] Script: biomass_distance | Error: Unrecognized function or variable 'rxnNames'.
+[02-Mar-2026 16:14:59] Script: FBA_comp | Error: RUN cannot execute the file 'tests/FBA_comp.m'. RUN requires a valid MATLAB script

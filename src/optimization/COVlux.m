@@ -159,7 +159,7 @@ end
 
 % Quality Control (Filter Noise)
 [E_full_clean, ~] = quality_filter(E_combined_raw, SNR_THRESHOLD, FLUX_NOISE_FLOOR);
-E_full = E_full_clean(2:end, :); % Remove resistance row
+E_full = E_full_clean(2:end, :); 
 fprintf('Final Valid EFM Count: %d\n', size(E_full, 2));
 
 rxn_names_full=rxnNames;
@@ -173,6 +173,59 @@ uncovered_list = rxnNames(~full_coverage);
 if ~isempty(uncovered_list)
     fprintf('WARNING: %d Reactions in model are UNCOVERED by EFMs.\n', length(uncovered_list));
 end
+
+% =========================================================================
+% GLOBAL EFM POOL "DEMOCRACY CHECK"
+% =========================================================================
+fprintf('\n--- GLOBAL EFM POOL DEMOCRACY CHECK ---\n');
+
+% 1. Find Repair Reactions in the original model (Checking SubSystems!)
+rep_model_idx = [];
+if isfield(model_ir, 'subSystems')
+    rep_model_idx = find(contains(model_ir.subSystems, 'Repair', 'IgnoreCase', true));
+end
+if isempty(rep_model_idx) % Fallback to names if subsystems failed
+    rep_model_idx = find(contains(rxnNames, 'Repair', 'IgnoreCase', true) | ...
+                         contains(rxnNames, 'Maint', 'IgnoreCase', true));
+end
+
+% 2. Find Central Metabolism for baseline comparison
+cen_model_idx = [];
+if isfield(model_ir, 'subSystems')
+    cen_model_idx = find(contains(model_ir.subSystems, 'Glycolysis', 'IgnoreCase', true) | ...
+                         contains(model_ir.subSystems, 'Citric', 'IgnoreCase', true) | ...
+                         contains(model_ir.subSystems, 'TCA', 'IgnoreCase', true));
+end
+if isempty(cen_model_idx)
+    cen_model_idx = find(contains(rxnNames, 'Glycolysis', 'IgnoreCase', true) | ...
+                         contains(rxnNames, 'TCA', 'IgnoreCase', true));
+end
+
+% 3. Map Model Indices to EFM Matrix Rows (rxnE)
+rep_rxns = rxnNames(rep_model_idx);
+cen_rxns = rxnNames(cen_model_idx);
+
+[~, rep_efm_idx] = ismember(rep_rxns, rxnE);
+rep_efm_idx = rep_efm_idx(rep_efm_idx > 0); % Keep only those present in EFM basis
+
+[~, cen_efm_idx] = ismember(cen_rxns, rxnE);
+cen_efm_idx = cen_efm_idx(cen_efm_idx > 0);
+
+% 4. Calculate Coverage (How many EFMs use each reaction?)
+coverage = sum(abs(E_full) > 1e-8, 2);
+
+if ~isempty(rep_efm_idx)
+    fprintf('Average Repair Coverage:  %.2f EFMs/rxn (Found %d active repair rxns)\n', ...
+        mean(coverage(rep_efm_idx)), length(rep_efm_idx));
+else
+    fprintf('Average Repair Coverage:  0.00 (No Repair rxns found in EFM basis)\n');
+end
+
+if ~isempty(cen_efm_idx)
+    fprintf('Average Central Coverage: %.2f EFMs/rxn (Found %d active central rxns)\n', ...
+        mean(coverage(cen_efm_idx)), length(cen_efm_idx));
+end
+fprintf('-----------------------------------------\n');
 
 %% 3. PREPARE OUTPUT DIRECTORIES
 if usebigbasis
@@ -314,7 +367,7 @@ for k = 1:numel(files)
     %[A_opt_QR, E_red, L] = covlux_symmetric_pipeline_mean(E_final, X_final, mu_final, lambda_qr, lambda_l21, max_iters, mean_influence, protected_idx, plotDir, clusterName,verbose,div_by_reactions);
     %[A_opt_QR, E_red, L] = covlux_symmetric_pipeline_mean_lasso(E_final, X_final, mu_final, lambda_qr, lambda_l21, max_iters, mean_influence, protected_idx, plotDir, clusterName,verbose,div_by_reactions);
     %[A_opt_QR, E_red, L, metrics]= solve_weighted_lasso_covariance(E_final, X_final, verbose, plotDir, clusterName);
-    [A_opt_QR, E_red, L, metrics]= covariance_selection(E_final, X_final,rxnNames, verbose, plotDir, clusterName,mean_influence,lambda_l21);
+    [A_opt_QR, E_red, L, metrics]= covariance_selection(E_final, X_final,rxnNames, verbose, plotDir, clusterName,mean_influence,lambda_l21,div_by_reactions);
     tolerance = 1e-9; 
     
     efm_norms_local = sqrt(sum(E_final.^2, 1));
@@ -334,9 +387,10 @@ for k = 1:numel(files)
     
     variances = diag(A_full);
     selected_efm_idx = find(variances > 1e-9);
+    %%
     
-   E_red=E_final(:,selected_efm_idx);
-   plot_efm_length_distribution(E_red, rxnNames, plotDir, clusterName)
+    E_red=E_final(:,selected_efm_idx);
+    plot_efm_length_distribution(E_red, rxnNames, plotDir, clusterName)
     X_recon_reduced = X_recon_full;  
     
     cluster_metrics = compute_and_save_cluster_metrics(...
