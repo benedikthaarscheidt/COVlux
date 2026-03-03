@@ -8,7 +8,7 @@
     "params": {
         "snr_threshold": 5,
         "flux_noise_floor": 1e-9,
-        "lambda_l21": 50,
+        "lambda_l21": 0.1,
         "lambda_qr": 1e-7,
         "max_iters": 100,
         "use_big_basis": true,
@@ -24,7 +24,7 @@
         "min_cluster_size": 10,
         "project_name":"GSM6725350_D1",
         "div_by_reactions":true,
-        "second_moment_mat":true,
+        "second_moment_mat":false,
         "use_smart_mapping":true,
         "mean_influence" : 0,
         "biomassEFMs":true

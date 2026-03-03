@@ -59,7 +59,7 @@ function [X_combined, rxns_common, stats, lambda_balance] = align_and_combine_C_
         end
         
         
-        %lambda_balance = 1; 
+        lambda_balance = 0; 
         
         if verbose
             fprintf('  [Balancing] Energy C: %.2e | Energy M: %.2e\n', energy_C, energy_M);

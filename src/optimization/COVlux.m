@@ -174,10 +174,6 @@ if ~isempty(uncovered_list)
     fprintf('WARNING: %d Reactions in model are UNCOVERED by EFMs.\n', length(uncovered_list));
 end
 
-% =========================================================================
-% GLOBAL EFM POOL "DEMOCRACY CHECK"
-% =========================================================================
-fprintf('\n--- GLOBAL EFM POOL DEMOCRACY CHECK ---\n');
 
 % 1. Find Repair Reactions in the original model (Checking SubSystems!)
 rep_model_idx = [];
@@ -321,7 +317,7 @@ for k = 1:numel(files)
     
     % --- Sanitize Covariance ---
     % Enforce PSD and clean noise
-    [X_use, stats] = sanitize_covariance_matrix(X_use, 1e-5, verbose, plotDir, clusterName);
+    [X_use, stats] = sanitize_covariance_matrix(X_use, 0, verbose, plotDir, clusterName);
     %[X_use, scale_factor] = prepare_covariance_matrix(X_use,1000,verbose);
     
     % --- Load Mean Activity (mu) ---
@@ -367,26 +363,31 @@ for k = 1:numel(files)
     %[A_opt_QR, E_red, L] = covlux_symmetric_pipeline_mean(E_final, X_final, mu_final, lambda_qr, lambda_l21, max_iters, mean_influence, protected_idx, plotDir, clusterName,verbose,div_by_reactions);
     %[A_opt_QR, E_red, L] = covlux_symmetric_pipeline_mean_lasso(E_final, X_final, mu_final, lambda_qr, lambda_l21, max_iters, mean_influence, protected_idx, plotDir, clusterName,verbose,div_by_reactions);
     %[A_opt_QR, E_red, L, metrics]= solve_weighted_lasso_covariance(E_final, X_final, verbose, plotDir, clusterName);
-    [A_opt_QR, E_red, L, metrics]= covariance_selection(E_final, X_final,rxnNames, verbose, plotDir, clusterName,mean_influence,lambda_l21,div_by_reactions);
+    %[A_opt_QR, E_red, L, metrics]= covariance_selection(E_final, X_final,rxnNames, verbose, plotDir, clusterName,mean_influence,lambda_l21,div_by_reactions);
+    [A_opt_QR, E_red, L, metrics]= closed_form_A(E_final, X_final,rxnNames, verbose, plotDir, clusterName,lambda_l21,div_by_reactions,'rowsum');
+
     tolerance = 1e-9; 
     
     efm_norms_local = sqrt(sum(E_final.^2, 1));
     efm_norms_local(efm_norms_local < 1e-12) = 1; % Avoid div-by-zero
     E_norm_check = E_final ./ efm_norms_local;
-
     
-    X_recon_full = E_norm_check * A_opt_QR * E_norm_check';
+    
+    X_recon_full = E_final * A_opt_QR * E_final';
 
     
     recon_error = norm(X_final - X_recon_full, 'fro') / norm(X_final, 'fro');
     
-    fprintf('  Reconstruction Error: %.6f (%.2f%%)\n', recon_error, recon_error * 100);
+    fprintf("reconstruction Error: %f \n",recon_error)
     
-    fprintf("Smallest value in A: %f",min(A_opt_QR(:)));
     A_full = A_opt_QR;
     
     variances = diag(A_full);
-    selected_efm_idx = find(variances > 1e-9);
+    selected_efm_idx = find(variances > 1e-6);
+    fprintf("number of selected EFMs: %d \n", length(selected_efm_idx))
+    
+
+    
     %%
     
     E_red=E_final(:,selected_efm_idx);

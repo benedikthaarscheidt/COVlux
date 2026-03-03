@@ -429,10 +429,14 @@ for k_idx = 1:length(target_indices)
     
     % --- Constraint 2: Force Tiny Flux (Avoid infeasibility on trace elements) ---
 
-    if i==2219
-        localTemplate.lb(i) = 1;
+    if i == 2219 % Biomass
+        localTemplate.lb(i) = 10;
     else 
-        localTemplate.lb(i) = 1e-4;   
+        safe_flux = min(0.001, range(i, 2) * 0.1); 
+        if safe_flux < 1e-4
+            safe_flux = 1e-4; % Fallback if FVA clamped it heavily
+        end
+        localTemplate.lb(i) = safe_flux;   
     end
     accepted_this_anchor = 0;
     for attempt = 1:maxSeedAttempts
