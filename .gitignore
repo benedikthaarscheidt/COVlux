@@ -6,7 +6,7 @@
 .Rhistory
 
 # --- Project Data & Outputs ---
-data/
+data/datasets/
 results/
 src/efm/efm_archive
 src/archive

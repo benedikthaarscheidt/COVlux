@@ -36,7 +36,7 @@ disp(biomass_structure);
 %% 2) Parameters
 eps_flux      = 1e-7;
 tol_balance   = 1e-8;
-M             = 1e3;
+M             = 1e4;
 badPair_count = 0;
 JACCARD_TAU   = 0.85;              % skip a candidate if Jaccard(similarity) >= 0.95 to any accepted support
 MAX_PER_ANCHOR = 400; % accept up to this many supports per anchor (set Inf for no cap)
@@ -57,6 +57,22 @@ fvaModel.ub       = model_ir.ub;
 fvaModel.vtype    = repmat('C', n, 1);
 fvaModel.modelsense = 'min';      % we'll switch between 'min' and 'max'
 fvaModel.obj      = zeros(n,1);
+
+uptake_idx = find(startsWith(lower(rxnNames), 'ex_') & endsWith(lower(rxnNames), '_b'));
+fvaModel.lb(uptake_idx) = 0; 
+fvaModel.ub(uptake_idx) = 0; 
+
+minimal_substrates = {'ex_glyc_e_b', 'ex_nh4_e_b', 'ex_pi_e_b', 'ex_so4_e_b', ...
+                      'ex_o2_e_b', 'ex_h2o_e_b', 'ex_h_e_b', 'ex_k_e_b', ...
+                      'ex_na1_e_b', 'ex_mg2_e_b', 'ex_ca2_e_b', 'ex_cl_e_b', ...
+                      'ex_fe2_e_b', 'ex_fe3_e_b', 'ex_zn2_e_b', 'ex_mn2_e_b', ...
+                      'ex_cu2_e_b', 'ex_cobalt2_e_b', 'ex_mobd_e_b', ...
+                      'ex_ni2_e_b', 'ex_sel_e_b', 'ex_tungs_e_b'};
+
+for i = 1:length(minimal_substrates)
+    idx_m = find(strcmpi(rxnNames, minimal_substrates{i}));
+    if ~isempty(idx_m), fvaModel.ub(idx_m) = M; end % M is your upper bound constant (5e3)
+end
 
 % Gurobi parameters for FVA
 fvaParams.OutputFlag = 0;
@@ -114,25 +130,11 @@ vMin = max(vMin, 0);                % safety for irreversible split model
 uptake_idx = find(startsWith(lower(rxnNames), 'ex_') & endsWith(lower(rxnNames), '_b'));
 vMax(uptake_idx) = 0; 
 
-% 2. Open specific minimal substrates (_b)
-minimal_substrates = {'ex_glc__d_e_b', 'ex_nh4_e_b', 'ex_pi_e_b', 'ex_so4_e_b', ...
-                      'ex_o2_e_b', 'ex_h2o_e_b', 'ex_h_e_b', 'ex_k_e_b', ...
-                      'ex_na1_e_b', 'ex_mg2_e_b', 'ex_ca2_e_b', 'ex_cl_e_b', ...
-                      'ex_fe2_e_b', 'ex_fe3_e_b', 'ex_zn2_e_b', 'ex_mn2_e_b', ...
-                      'ex_cu2_e_b', 'ex_cobalt2_e_b', 'ex_mobd_e_b', ...
-                      'ex_ni2_e_b', 'ex_sel_e_b', 'ex_tungs_e_b'};
 
 for i = 1:length(minimal_substrates)
     idx_m = find(strcmpi(rxnNames, minimal_substrates{i}));
     if ~isempty(idx_m), vMax(idx_m) = M; end % M is your upper bound constant (5e3)
 end
-
-% 3. Standardize Carbon and Oxygen limits
-glc_idx = find(strcmpi(rxnNames, 'ex_glc__d_e_b') | strcmpi(rxnNames, 'ex_glc_e_b'));
-if ~isempty(glc_idx), vMax(glc_idx) = 1000; end 
-
-o2_idx = find(strcmpi(rxnNames, 'ex_o2_e_b'));
-if ~isempty(o2_idx), vMax(o2_idx) = 1000; end
 
 
 range = [vMin, vMax];
@@ -387,31 +389,31 @@ for m_idx = bio_mets'
         end
     end
 end
-
+target_indices=[target_indices;2219];
 target_indices = unique(target_indices);
 fprintf('Found %d de novo synthesis targets based on Biomass precursors.\n', length(target_indices));
 
 %%
-target_indices = [];
-
-% 1. Search by SubSystem (Best way for iML1515)
-if isfield(model_ir, 'subSystems')
-    sub_idx = find(contains(model_ir.subSystems, 'Repair', 'IgnoreCase', true) | ...
-                   contains(model_ir.subSystems, 'Maintenance', 'IgnoreCase', true));
-    target_indices = [target_indices; sub_idx(:)];
-end
-
-% 2. Search by Reaction Name as a fallback/addition
-name_idx = find(contains(rxnNames, 'Repair', 'IgnoreCase', true) | ...
-                contains(rxnNames, 'Maint', 'IgnoreCase', true));
-target_indices = [target_indices; name_idx(:)];
-
-target_indices = unique(target_indices);
-fprintf('Found %d underrepresented targets for re-enumeration.\n', length(target_indices));
-
-if isempty(target_indices)
-    error('No repair targets found! Check your model annotations.');
-end
+%target_indices = [];
+%
+%% 1. Search by SubSystem (Best way for iML1515)
+%if isfield(model_ir, 'subSystems')
+%    sub_idx = find(contains(model_ir.subSystems, 'Repair', 'IgnoreCase', true) | ...
+%                   contains(model_ir.subSystems, 'Maintenance', 'IgnoreCase', true));
+%    target_indices = [target_indices; sub_idx(:)];
+%end
+%
+%% 2. Search by Reaction Name as a fallback/addition
+%name_idx = find(contains(rxnNames, 'Repair', 'IgnoreCase', true) | ...
+%                contains(rxnNames, 'Maint', 'IgnoreCase', true));
+%target_indices = [target_indices; name_idx(:)];
+%
+%target_indices = unique(target_indices);
+%fprintf('Found %d underrepresented targets for re-enumeration.\n', length(target_indices));
+%
+%if isempty(target_indices)
+%    error('No repair targets found! Check your model annotations.');
+%end
 
 %% 6) Enumeration loop (timed checkpoint only; logic unchanged)
 for k_idx = 1:length(target_indices)
@@ -426,8 +428,12 @@ for k_idx = 1:length(target_indices)
     localTemplate.ub(n+i) = 1;
     
     % --- Constraint 2: Force Tiny Flux (Avoid infeasibility on trace elements) ---
-    localTemplate.lb(i) = 1e-4;   % Using 1e-4 instead of 1.0 (which was used for biomass EFMs)
-    
+
+    if i==2219
+        localTemplate.lb(i) = 1;
+    else 
+        localTemplate.lb(i) = 1e-4;   
+    end
     accepted_this_anchor = 0;
     for attempt = 1:maxSeedAttempts
         M1 = localTemplate;
@@ -632,12 +638,12 @@ else
     EFM_support = abs(EFM_matrix(2:end, :)) > tol_nz;
 
     % Save MAT + CSV (include new structures)
-    save('efms_matrix_iML1515_repair.mat', ...
+    save('efms_matrix_iML1515_glycerol.mat', ...
          'EFM_matrix','EFM_table','rowNames','varNames','EFM_support', ...
          'EFM_anchor','EFM_supps','rxnNames','S','model_ir');
 
     writetable(EFM_table, ...
-               'efms_matrix_iML1515_repair.csv', ...
+               'efms_matrix_iML1515_glycerol.csv', ...
                'WriteRowNames', true);
 
     fprintf('Saved EFM matrix: (%d x %d) = [residual; %d reactions] x %d EFMs\n', ...
