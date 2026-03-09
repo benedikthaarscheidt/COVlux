@@ -24,7 +24,7 @@ function [clean_mat, mask] = quality_filter(mat, snr, noise)
     fprintf('Removed %d "Ghost" EFMs.\n', sum(~mask));
     
     % --- 2. JACCARD REDUNDANCY FILTER ---
-    jaccard_threshold = 0.9;
+    jaccard_threshold = 0.7;
     valid_idx = find(mask); % EFMs that survived the Ghost filter
     n_valid = length(valid_idx);
     

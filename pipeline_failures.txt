@@ -1,6 +1,4 @@
-[02-Mar-2026 12:10:53] Script: COVlux | Error: The 'bestfit' option is only valid for page formats and printers.
-[02-Mar-2026 12:10:53] Script: master_comparison_cov | Error: Unrecognized table variable name 'Biomass_max'.
-[02-Mar-2026 12:10:54] Script: biomass_distance | Error: No result CSVs found.
-[02-Mar-2026 15:56:01] Script: master_comparison_cov | Error: Unrecognized function or variable 'rxnNames'.
-[02-Mar-2026 15:56:02] Script: biomass_distance | Error: Unrecognized function or variable 'rxnNames'.
-[02-Mar-2026 16:14:59] Script: FBA_comp | Error: RUN cannot execute the file 'tests/FBA_comp.m'. RUN requires a valid MATLAB script
+[04-Mar-2026 17:09:17] Script: analyze_biological_state | Error: No removal logs (*_removal_log.csv) found in /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-03-04_16-05-16/log_dir
+[04-Mar-2026 18:14:06] Script: analyze_biological_state | Error: No removal logs (*_removal_log.csv) found in /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-03-04_17-15-24/log_dir
+[04-Mar-2026 22:16:32] Script: analyze_biological_state | Error: No removal logs (*_removal_log.csv) found in /Users/benedikthaarscheidt/COVlux/results/COVlux_cov_bigbasis/Run_2026-03-04_19-12-29/log_dir
+[05-Mar-2026 11:19:15] Script: biomass_distance | Error: Unrecognized property 'FaceColor' for class 'matlab.graphics.GraphicsPlaceholder'.

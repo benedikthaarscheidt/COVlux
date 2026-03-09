@@ -3,7 +3,6 @@
 % 2. VARIANCE: How much data variance is captured by the "Fixed" (Gap-filled) model?
 % =========================================================================
 
-
 % --- 1. ROBUST PATH FINDING ---
 if exist(fullfile(pwd, 'config', 'config.json'), 'file')
     projectRoot = pwd;
@@ -28,12 +27,11 @@ targetBiomassName = 'BIOMASS_Ec_iML1515_WT_75p37M';
 
 % --- PARAMETERS ---
 usebigbasis      = config.params.use_big_basis;
-usesecondmoment = config.params.second_moment_mat;
+usesecondmoment  = config.params.second_moment_mat;
 run_name_cluster = config.params.input_clustering_folder;
 use_conditions   = isfield(config.params, 'use_conditions') && config.params.use_conditions;
 
 %% 2. PATH DEFINITIONS
-% COVlux Results (To get lost_rxns files)
 if usebigbasis
     covluxBase = fullfile(projectRoot, config.paths.results_dir, 'COVlux_cov_bigbasis');
 else
@@ -44,61 +42,38 @@ clusteringBase = fullfile(projectRoot, config.paths.results_dir, 'Clustering');
 if use_conditions
     covDir = fullfile(clusteringBase, run_name_cluster, 'data_files', 'grouped_by_condition', 'MRAS_outputs');
     expressionDir = fullfile(clusteringBase, run_name_cluster, 'data_files', 'grouped_by_condition');
-    
 else
     covDir = fullfile(clusteringBase, run_name_cluster, 'data_files', 'MRAS_outputs');
     expressionDir = fullfile(clusteringBase, run_name_cluster, 'data_files');
 end
 
-% Get all Run folders
 d = dir(fullfile(covluxBase, 'Run_*')); 
 d = d([d.isdir]);
+if isempty(d), error('No Run folders found in %s', covluxBase); end
 
-if isempty(d)
-    error('No Run folders found in %s', covluxBase);
-end
-
-% Extract folder names
 folderNames = {d.name};
-
-% Convert to datetime objects using the pattern in the folder names
 runTimes = NaT(length(d), 1);
 for i = 1:length(d)
-    % Remove 'Run_' prefix
     timeStr = extractAfter(folderNames{i}, 'Run_');
     try
-        % Parse: yyyy-MM-dd_HH-mm-ss
         runTimes(i) = datetime(timeStr, 'InputFormat', 'yyyy-MM-dd_HH-mm-ss');
     catch
-        % Fallback to modification time if parsing fails
         runTimes(i) = datetime(d(i).datenum, 'ConvertFrom', 'datenum');
     end
 end
-
-% Sort by actual run time (newest first)
 [~, sortIdx] = sort(runTimes, 'descend');
-
-% Debug output
-
-% Select LATEST by actual run time
 resultsDir = fullfile(covluxBase, d(sortIdx(1)).name);
 
-
-% Clustering Data (To get Covariance Matrices & Expression)
-clusteringBase = fullfile(projectRoot, config.paths.results_dir, 'Clustering');
 if use_conditions
     covInputDir = fullfile(clusteringBase, run_name_cluster, 'data_files', 'grouped_by_condition', 'MRAS_outputs');
     expressionDir = fullfile(clusteringBase, run_name_cluster, 'data_files', 'grouped_by_condition','mapped_for_benchmarking');
-    
 else
     covInputDir = fullfile(clusteringBase, run_name_cluster, 'data_files', 'MRAS_outputs');
     expressionDir = fullfile(clusteringBase, run_name_cluster, 'data_files','mapped_for_benchmarking');
 end
-if ~exist(covDir, 'dir'), covDir = fileparts(covDir); end % Fallback
+if ~exist(covDir, 'dir'), covDir = fileparts(covDir); end 
 
-% Models
 modelPath = fullfile(projectRoot, config.paths.models_dir, config.model.model_file);
-
 fprintf('Results Source:    %s\n', resultsDir);
 fprintf('Covariance Source: %s\n', covDir);
 
@@ -108,24 +83,25 @@ data = load(modelPath);
 if isfield(data, 'pruned_ir'), model = data.pruned_ir; else, vars=fieldnames(data); model=data.(vars{1}); end
 n_rxns = length(model.rxns);
 
-% Identify Biomass
 bio_idx = find(strcmp(model.rxns, targetBiomassName));
 if isempty(bio_idx), bio_idx = find(contains(model.rxns, 'BIOMASS'),1); end
 if isempty(bio_idx), error('Biomass reaction not found.'); end
-%%
-minimal_substrates = {'ex_glc__d_e', 'ex_nh4_e', 'ex_pi_e', 'ex_so4_e', ...
-                'ex_o2_e', 'ex_h2o_e', 'ex_h_e', 'ex_k_e', ...
-                'ex_na1_e', 'ex_mg2_e', 'ex_ca2_e', 'ex_cl_e', ...
-                'ex_fe2_e', 'ex_fe3_e', 'ex_zn2_e', 'ex_mn2_e', ...
-                'ex_cu2_e', 'ex_cobalt2_e', 'ex_mobd_e', ...
-                'ex_ni2_e', 'ex_sel_e', 'ex_tungs_e'};
-model_min=model;
-exc_idx = find(startsWith(lower(rxnNames), 'ex_') & endsWith(lower(rxnNames), '_b'));% Identify exchange reactions
+
+%% MINIMAL MEDIA DEFINITION
+minimal_substrates = {'ex_glc__d_e_b', 'ex_glc_e_b', 'ex_o2_e_b', 'ex_h2o_e_b', 'ex_h_e_b', ...
+                      'ex_nh4_e_b', 'ex_pi_e_b', 'ex_so4_e_b', 'ex_k_e_b', 'ex_na1_e_b', ...
+                      'ex_mg2_e_b', 'ex_ca2_e_b', 'ex_cl_e_b', 'ex_fe2_e_b', 'ex_fe3_e_b', ...
+                      'ex_zn2_e_b', 'ex_mn2_e_b', 'ex_cu2_e_b', 'ex_cobalt2_e_b', ...
+                      'ex_mobd_e_b', 'ex_ni2_e_b', 'ex_sel_e_b', 'ex_tungs_e_b', ...
+                      'ex_thm_e_b', 'ex_cbl1_e_b', 'ex_niacin_e_b', ...
+                      'ex_glyc_e_b', 'ex_pyr_e_b', 'ex_ade_e_b', 'ex_hxan_e_b', 'ex_ura_e_b', ...
+                      'ex_glu__L_e_b', 'ex_asp__L_e_b', 'ex_ser__L_e_b','ex_leu__L_e_b'};
+model_min = model;
+exc_idx = find(startsWith(lower(model.rxns), 'ex_') & endsWith(lower(model.rxns), '_b'));
 model_min.lb(exc_idx) = 0;
 model_min.ub(exc_idx) = 0;      
-
 for i = 1:length(minimal_substrates)
-    rxn_id = find(strcmpi(model_min.rxns, minimal_substrates{i})); % case-insensitive
+    rxn_id = find(strcmpi(model_min.rxns, minimal_substrates{i})); 
     if ~isempty(rxn_id)
         model_min.lb(rxn_id) = 0;
         model_min.ub(rxn_id) = 1000;
@@ -133,33 +109,34 @@ for i = 1:length(minimal_substrates)
         warning('Minimal substrate %s not found in model.', minimal_substrates{i});
     end
 end
-%%
-             
 
 fprintf('Printing non-zero S-matrix coefficients for %d exchange reactions:\n', length(exc_idx));
 fprintf('%-25s | %-20s | %-10s\n', 'Reaction ID', 'Metabolite', 'Coefficient');
 fprintf('%s\n', repmat('-', 1, 60));
 
-% 2. Loop through and extract S-matrix data
+fprintf('\n--- Running Pre-Flight Check on Unpruned Model ---\n');
+[~, dead_in_base] = perform_biomass_autopsy(model, 1:n_rxns, bio_idx);
+bio_col = model.S(:, bio_idx);
+all_precursors = model.mets(bio_col < -1e-6);
+valid_precursors = setdiff(all_precursors, dead_in_base);
+fprintf('   Base model can synthesize %d/%d precursors.\n', length(valid_precursors), length(all_precursors));
+fprintf('   Skipping %d impossible cofactors/precursors in gap analysis.\n', length(dead_in_base));
+
 for i = 1:length(exc_idx)
     rxn_idx = exc_idx(i);
     rxn_name = model_min.rxns{rxn_idx};
-    
-    % Find non-zero entries in this column of S
     met_indices = find(model_min.S(:, rxn_idx));
-    
     for j = 1:length(met_indices)
         met_idx = met_indices(j);
         met_name = model_min.mets{met_idx};
         coeff = model_min.S(met_idx, rxn_idx);
-        
         fprintf('%-25s | %-20s | %-10.2f\n', rxn_name, met_name, coeff);
     end
 end 
+
 %% 4. MAIN LOOP
 files = dir(fullfile(resultsDir, '*_unique_lost_rxns_full.csv'));
 if isempty(files), error('No result CSVs found.'); end
-
 Stats = struct([]);
 fprintf('\n%-20s | %-5s %-5s %-5s | %-5s %-5s %-5s | %-5s %-5s %-5s\n', 'Cluster', 'G_COVlux', 'G_FastCore', 'G_iMAT', 'V_COVlux', 'V_FastCore', 'V_iMAT', 'L_COVlux', 'L_FastCore', 'L_iMAT');
 fprintf('%s\n', repmat('-',1,105));
@@ -173,68 +150,42 @@ for k = 1:length(files)
     expr_short_name = expr_name_parts{1};
     
     % --- A. GET COVLUX SURVIVORS ---
-    
     try
-        
         raw_lines = readlines(fullfile(files(k).folder, filename));
-        
-        
         if length(raw_lines) > 0 && (contains(raw_lines(1), 'lost') || contains(raw_lines(1), 'Var'))
             raw_lines(1) = [];
         end
-        
-       
         covlux_names = strtrim(raw_lines(strlength(raw_lines) > 0));
-        
-        
         [~, lost_covlux] = ismember(covlux_names, model.rxns);
         lost_idx = lost_covlux(lost_covlux > 0);
-        
-        
         survivors_cov = setdiff(1:n_rxns, lost_idx)';
         lost_cov_count = length(lost_idx);
-        
-        
         kept_cov = false(n_rxns, 1);
         kept_cov(survivors_cov) = true;
-        
     catch ME
         fprintf('Error reading COVlux file for %s: %s\n', short_name, ME.message);
-        kept_cov = true(n_rxns, 1); % Keep all if file empty/error
+        kept_cov = true(n_rxns, 1); 
         lost_cov_count = 0;
     end
     
     % --- B. GET iMAT/FASTCORE SURVIVORS ---
     exprFile = fullfile(expressionDir,  [expr_short_name, '_logCPM_mapped_to_model.csv']);
     RH = []; RL = [];
-    
     if exist(exprFile, 'file')
-        
         T = readtable(exprFile, 'VariableNamingRule', 'preserve');
-        
-        
-        
         gene_vals = mean(T{:, :}, 1, 'omitnan')';
-        
-        
         valid_genes_struct = struct();
-        valid_genes_struct.gene = T.Properties.VariableNames(:); % b-numbers
+        valid_genes_struct.gene = T.Properties.VariableNames(:); 
         valid_genes_struct.value = gene_vals(:);
-        
-        
         [RH, RL] = getExpressionSets(model, valid_genes_struct);
-        
     else
         fprintf('Warning: Mapped expression file not found for %s\n', short_name);
-        
     end
     
-    % iMAT
     idx_imat = run_imat_milp_standard(model, RH, RL);
     kept_imat = false(n_rxns, 1); kept_imat(idx_imat) = true;
     lost_imat_count = n_rxns - sum(kept_imat);
     
-    % FASTCORE
     try
         fast_model = fastcore(model, RH, 1e-4);
         [is_kept, ~] = ismember(model.rxns, fast_model.rxns);
@@ -245,20 +196,170 @@ for k = 1:length(files)
         lost_fast_count = n_rxns;
     end
     
-    % --- C. GAP ANALYSIS (Get Added Reactions) ---
+    % --- C. GAP ANALYSIS & AUTOPSY ---
+    
+    % 1. Calculate Functional Gaps (Maximal Media)
     [gap_cov, added_cov]   = calculate_gap_and_patch(model, kept_cov, bio_idx);
     [gap_imat, added_imat] = calculate_gap_and_patch(model, kept_imat, bio_idx);
     [gap_fast, added_fast] = calculate_gap_and_patch(model, kept_fast, bio_idx);
+    methods_added = {added_cov, added_imat, added_fast};
+    method_names  = {'COVLUX', 'iMAT', 'FASTCORE'};
     
-    % --- C. GAP ANALYSIS minimal medium ---
+    fprintf('\n   --- ADDED REACTIONS (Gap Fixes - Max Media) ---\n');
+    for m_idx = 1:3
+        curr_added = methods_added{m_idx};
+        fprintf('   [%s] Gap: %d\n', method_names{m_idx}, length(curr_added));
+        if ~isempty(curr_added)
+            for r = 1:min(10, length(curr_added))
+                rxn_id = curr_added(r);
+                rxn_name = model.rxns{rxn_id};
+                if isfield(model, 'subSystems')
+                    sub = model.subSystems{rxn_id};
+                    if iscell(sub), sub = sub{1}; end
+                else
+                    sub = 'N/A';
+                end
+                fprintf('      + %-15s | %s\n', rxn_name, sub);
+            end
+            if length(curr_added) > 10, fprintf('      ... and %d more.\n', length(curr_added) - 10); end
+        else
+            fprintf('      (No reactions added - network is self-sufficient)\n');
+        end
+    end
+    fprintf('   -----------------------------------\n');
+    
+    % 2. Calculate Functional Gaps (Minimal Media)
+    [gap_cov_min, added_cov_min]   = calculate_gap_and_patch(model_min, kept_cov, bio_idx);
+    [gap_imat_min, added_imat_min] = calculate_gap_and_patch(model_min, kept_imat, bio_idx);
+    [gap_fast_min, added_fast_min] = calculate_gap_and_patch(model_min, kept_fast, bio_idx);
+    
+    % 3. AUTOPSY
+    idx_cov  = find(kept_cov);
+    idx_imat = find(kept_imat);
+    idx_fast = find(kept_fast);
+    
+    fprintf('\n   --- BIOMASS AUTOPSY (Max Media) ---\n');
+    [intact_cov, dead_cov] = perform_biomass_autopsy(model, idx_cov, bio_idx);
+    tot_pre = length(intact_cov) + length(dead_cov);
+    fprintf('   [COVLUX] Intact: %2d/%2d | Dead: %2d\n', length(intact_cov), tot_pre, length(dead_cov));
+    if ~isempty(dead_cov), fprintf('      Missing: %s\n', strjoin(dead_cov(1:min(5, end)), ', ')); end
+    
+    [intact_imat, dead_imat] = perform_biomass_autopsy(model, idx_imat, bio_idx);
+    fprintf('   [iMAT]   Intact: %2d/%2d | Dead: %2d\n', length(intact_imat), tot_pre, length(dead_imat));
+    if ~isempty(dead_imat), fprintf('      Missing: %s\n', strjoin(dead_imat(1:min(5, end)), ', ')); end
+    
+    [intact_fast, dead_fast] = perform_biomass_autopsy(model, idx_fast, bio_idx);
+    fprintf('   [FAST]   Intact: %2d/%2d | Dead: %2d\n', length(intact_fast), tot_pre, length(dead_fast));
+    if ~isempty(dead_fast), fprintf('      Missing: %s\n', strjoin(dead_fast(1:min(5, end)), ', ')); end
+    fprintf('   ---------------------------------------\n');
+    
+    fprintf('\n   --- BIOMASS AUTOPSY (Minimal Media) ---\n');
+    [intact_cov_min, dead_cov_min] = perform_biomass_autopsy(model_min, idx_cov, bio_idx);
+    fprintf('   [COVLUX] Intact: %2d/%2d | Dead: %2d\n', length(intact_cov_min), tot_pre, length(dead_cov_min));
+    if ~isempty(dead_cov_min), fprintf('      Missing: %s\n', strjoin(dead_cov_min(1:min(5, end)), ', ')); end
+    
+    [intact_imat_min, dead_imat_min] = perform_biomass_autopsy(model_min, idx_imat, bio_idx);
+    fprintf('   [iMAT]   Intact: %2d/%2d | Dead: %2d\n', length(intact_imat_min), tot_pre, length(dead_imat_min));
+    if ~isempty(dead_imat_min), fprintf('      Missing: %s\n', strjoin(dead_imat_min(1:min(5, end)), ', ')); end
+    
+    [intact_fast_min, dead_fast_min] = perform_biomass_autopsy(model_min, idx_fast, bio_idx);
+    fprintf('   [FAST]   Intact: %2d/%2d | Dead: %2d\n', length(intact_fast_min), tot_pre, length(dead_fast_min));
+    if ~isempty(dead_fast_min), fprintf('      Missing: %s\n', strjoin(dead_fast_min(1:min(5, end)), ', ')); end
+    fprintf('   ---------------------------------------\n');
+    
+    % --- DUAL RECONSTITUTION VERIFICATION (FBA) ---
+    fprintf('\n   --- RECONSTITUTION VERIFICATION (FBA) ---\n');
+    
+    % Infrastructure Mask for Safety
+    rxns_lower = lower(model.rxns);
+    infrastructure_mask = contains(rxns_lower, 'biomass') | ...
+                          startsWith(rxns_lower, 'ex_') | ...
+                          contains(rxns_lower, 'atpm');
+    infra_idx = find(infrastructure_mask);
+    methods_kept_idx = {idx_cov, idx_imat, idx_fast};
 
-    [gap_cov_min, ~]  = calculate_gap_and_patch(model_min, kept_cov, bio_idx);
-    [gap_imat_min, ~] = calculate_gap_and_patch(model_min, kept_imat, bio_idx);
-    [gap_fast_min, ~] = calculate_gap_and_patch(model_min, kept_fast, bio_idx);
-    % --- D. VARIANCE ANALYSIS (On Fixed Models) ---
+    % --- SCENARIO 1: MAXIMAL MEDIA TEST ---
+    fprintf('   >> SCENARIO 1: MAXIMAL MEDIA (Rich Environment)\n');
+    methods_added_max = {added_cov, added_imat, added_fast};
+    for m_idx = 1:3
+        check_model_max = model; 
+        
+        final_kept_max = unique([methods_kept_idx{m_idx}; methods_added_max{m_idx}; bio_idx]);
+        
+        is_lost = true(n_rxns, 1);
+        is_lost(final_kept_max) = false;
+        check_model_max.lb(is_lost) = 0;
+        check_model_max.ub(is_lost) = 0;
+        
+        % FIX: Explicitly tell FBA to maximize Biomass and NOTHING ELSE
+        check_model_max.c = zeros(n_rxns, 1);
+        check_model_max.c(bio_idx) = 1;
+        
+        sol_max = optimizeCbModel(check_model_max, 'max');
+        if sol_max.stat == 1 && sol_max.f > 1e-6
+            fprintf('      [%s] VERIFIED: Grows at %.4f h^-1\n', method_names{m_idx}, sol_max.f);
+        else
+            fprintf('      [%s] FAILED: Flux %.2e (Solver Status: %d)\n', method_names{m_idx}, sol_max.f, sol_max.stat);
+            
+            % --- THE DIAGNOSTIC ---
+            fprintf('         > Running FBA Diagnostic...\n');
+            try
+                relaxOpt = struct('internalRelax', 2, 'exchangeRelax', 2, 'bRelax', 0);
+                [~, ~, ~, ~, ~, relaxDir] = relaxFBA(check_model_max, relaxOpt);
+                bad_rxns = check_model_max.rxns(relaxDir > 1e-6);
+                if ~isempty(bad_rxns)
+                    fprintf('         > FBA starved for: %s\n', strjoin(bad_rxns(1:min(5, end)), ', '));
+                else
+                    fprintf('         > FBA failed due to an unbounded thermodynamic loop.\n');
+                end
+            catch
+                fprintf('         > Diagnostic failed to isolate the bottleneck.\n');
+            end
+        end
+    end
 
+    % --- SCENARIO 2: MINIMAL MEDIA TEST ---
+    fprintf('\n   >> SCENARIO 2: MINIMAL MEDIA (Strict Substrates)\n');
+    methods_added_min = {added_cov_min, added_imat_min, added_fast_min};
+    for m_idx = 1:3
+        check_model_min = model_min; 
+        
+        final_kept_min = unique([methods_kept_idx{m_idx}; methods_added_min{m_idx}; bio_idx]);
+        
+        is_lost = true(n_rxns, 1);
+        is_lost(final_kept_min) = false;
+        check_model_min.lb(is_lost) = 0;
+        check_model_min.ub(is_lost) = 0;
+        
+        % FIX: Explicitly tell FBA to maximize Biomass and NOTHING ELSE
+        check_model_min.c = zeros(n_rxns, 1);
+        check_model_min.c(bio_idx) = 1;
+        
+        sol_min = optimizeCbModel(check_model_min, 'max');
+        if sol_min.stat == 1 && sol_min.f > 1e-6
+            fprintf('      [%s] VERIFIED: Grows at %.4f h^-1\n', method_names{m_idx}, sol_min.f);
+        else
+            fprintf('      [%s] FAILED: Flux %.2e (Solver Status: %d)\n', method_names{m_idx}, sol_min.f, sol_min.stat);
+            
+            % --- THE DIAGNOSTIC ---
+            fprintf('         > Running FBA Diagnostic...\n');
+            try
+                relaxOpt = struct('internalRelax', 2, 'exchangeRelax', 2, 'bRelax', 0);
+                [~, ~, ~, ~, ~, relaxDir] = relaxFBA(check_model_min, relaxOpt);
+                bad_rxns = check_model_min.rxns(relaxDir > 1e-6);
+                if ~isempty(bad_rxns)
+                    fprintf('         > FBA starved for: %s\n', strjoin(bad_rxns(1:min(5, end)), ', '));
+                else
+                    fprintf('         > FBA failed due to an unbounded thermodynamic loop.\n');
+                end
+            catch
+                fprintf('         > Diagnostic failed to isolate the bottleneck.\n');
+            end
+        end
+    end
+    fprintf('   -------------------------------------------\n');
     
-    
+    % --- D. VARIANCE ANALYSIS (On Fixed Models - Max Media) ---
     if usesecondmoment
         covFile = fullfile(covDir, [cluster_full_name '_logCPM_SecondMoment.csv']);
     else 
@@ -268,174 +369,101 @@ for k = 1:length(files)
     
     var_cov = NaN; var_imat = NaN; var_fast = NaN;
     avg_cov = NaN; avg_imat = NaN; avg_fast = NaN;
-    coh_cov = NaN; coh_imat = NaN; coh_fast = NaN; % New: Coherence
-    conn_cov = NaN; conn_imat = NaN; conn_fast = NaN; % New: Connectivity
-
+    coh_cov = NaN; coh_imat = NaN; coh_fast = NaN; 
+    conn_cov = NaN; conn_imat = NaN; conn_fast = NaN; 
+    
     if exist(covFile, 'file')
         try
             T_cv = readtable(covFile, 'ReadRowNames', true, 'PreserveVariableNames', true);
             X = table2array(T_cv);
             rxns_X = string(T_cv.Properties.RowNames);
-            
-            
             [~, map_Model_to_X] = ismember(model.rxns, rxns_X);
-            
-           
             total_var = trace(X);
-            
-           
             std_vec = sqrt(diag(X));
             Corr_Matrix = X ./ (std_vec * std_vec');
-            Corr_Matrix(isnan(Corr_Matrix)) = 0; % Fix div-by-zero for silent rxns
+            Corr_Matrix(isnan(Corr_Matrix)) = 0; 
             
-            % --- 2. HELPERS ---
-            % Helper: Variance Sum (Diagonal)
             get_raw_sum = @(mask) sum(diag(X(map_Model_to_X(mask & map_Model_to_X>0), map_Model_to_X(mask & map_Model_to_X>0))));
             calc_pct = @(raw_sum) (raw_sum / total_var) * 100;
-            
-            % Helper: Coherence (Mean absolute Correlation of kept sub-network)
-            % Measures "Network Density": Do the kept reactions actually talk to each other?
             get_coherence = @(mask) mean(abs(Corr_Matrix(map_Model_to_X(mask & map_Model_to_X>0), map_Model_to_X(mask & map_Model_to_X>0))), 'all', 'omitnan');
-
-            % Helper: Connectivity (Fraction of nodes with at least one strong link r > 0.5)
-            % Measures "Network Fragmentation": Are reactions isolated or connected?
             get_connectivity = @(mask) mean(any(abs(Corr_Matrix(map_Model_to_X(mask & map_Model_to_X>0), map_Model_to_X(mask & map_Model_to_X>0))) > 0.5, 2));
-
-            % --- 3. CALCULATE METRICS ---
             
-            % 1. COVlux Fixed
-            fixed_cov = kept_cov; fixed_cov(added_cov) = true;
-            raw_cov = get_raw_sum(fixed_cov);
-            var_cov = calc_pct(raw_cov); 
-            avg_cov = raw_cov / sum(fixed_cov); 
-            coh_cov = get_coherence(fixed_cov);     
-            conn_cov = get_connectivity(fixed_cov); 
+            fixed_cov = kept_cov; fixed_cov(added_cov) = true; fixed_cov(added_cov_min) = true;
+            raw_cov = get_raw_sum(fixed_cov); var_cov = calc_pct(raw_cov); 
+            avg_cov = raw_cov / sum(fixed_cov); coh_cov = get_coherence(fixed_cov); conn_cov = get_connectivity(fixed_cov); 
             
-            % 2. iMAT Fixed
-            fixed_imat = kept_imat; fixed_imat(added_imat) = true;
-            raw_imat = get_raw_sum(fixed_imat);
-            var_imat = calc_pct(raw_imat);
-            avg_imat = raw_imat / sum(fixed_imat);
-            coh_imat = get_coherence(fixed_imat);    
-            conn_imat = get_connectivity(fixed_imat);
+            fixed_imat = kept_imat; fixed_imat(added_imat) = true;fixed_imat(added_imat_min) = true;
+            raw_imat = get_raw_sum(fixed_imat); var_imat = calc_pct(raw_imat);
+            avg_imat = raw_imat / sum(fixed_imat); coh_imat = get_coherence(fixed_imat); conn_imat = get_connectivity(fixed_imat);
             
-            % 3. Fastcore Fixed
-            fixed_fast = kept_fast; fixed_fast(added_fast) = true;
-            raw_fast = get_raw_sum(fixed_fast);
-            var_fast = calc_pct(raw_fast);
-            avg_fast = raw_fast / sum(fixed_fast);
-            coh_fast = get_coherence(fixed_fast);     
-            conn_fast = get_connectivity(fixed_fast); 
-           
+            fixed_fast = kept_fast; fixed_fast(added_fast) = true;fixed_fast(added_fast_min) = true;
+            raw_fast = get_raw_sum(fixed_fast); var_fast = calc_pct(raw_fast);
+            avg_fast = raw_fast / sum(fixed_fast); coh_fast = get_coherence(fixed_fast); conn_fast = get_connectivity(fixed_fast); 
         catch ME
             warning('Metric calculation failed for %s: %s', short_name, ME.message);
         end
     end
     
-  
-    % --- LOGGING ---
     fprintf('%-20s | %-5d %-5d %-5d | %-5d %-5d %-5d  | %-5.1f %-5.1f %-5.1f | %-5d %-5d %-5d\n', ...
         short_name, gap_cov, gap_fast, gap_imat,gap_cov_min, gap_fast_min, gap_imat_min, var_cov, var_fast, var_imat, ...
         lost_cov_count, lost_fast_count, lost_imat_count);
-        
-    
     if ~isnan(coh_cov)
         fprintf('   > Coherence: COV=%.3f | iMAT=%.3f | FAST=%.3f\n', coh_cov, coh_imat, coh_fast);
     end
-
-    % Save to stats
+    
     Stats(k).Cluster = string(short_name);
-    
-    % Gaps
-    Stats(k).Gap_COV = gap_cov;
-    Stats(k).Gap_FAST = gap_fast;
-    Stats(k).Gap_iMAT = gap_imat;
-    
-    Stats(k).Gap_Min_COV = gap_cov_min;
-    Stats(k).Gap_Min_iMAT = gap_imat_min;
-    Stats(k).Gap_Min_FAST = gap_fast_min;
-
-    % Variance
-    Stats(k).Var_COV = var_cov;
-    Stats(k).Var_FAST = var_fast;
-    Stats(k).Var_iMAT = var_imat;
-    
-    % Average Variance (Information Density)
-    Stats(k).AvgVar_COV = avg_cov;   
-    Stats(k).AvgVar_FAST = avg_fast; 
-    Stats(k).AvgVar_iMAT = avg_imat; 
-    
-    % Lost Counts
-    Stats(k).Lost_COV = lost_cov_count;
-    Stats(k).Lost_FAST = lost_fast_count;
-    Stats(k).Lost_iMAT = lost_imat_count;
-    
-    % NEW: Network Coherence & Connectivity
-    Stats(k).Coherence_COV = coh_cov;
-    Stats(k).Coherence_FAST = coh_fast;
-    Stats(k).Coherence_iMAT = coh_imat;
-    
-    Stats(k).Conn_COV = conn_cov;
-    Stats(k).Conn_FAST = conn_fast;
-    Stats(k).Conn_iMAT = conn_imat;
+    Stats(k).Gap_COV = gap_cov; Stats(k).Gap_FAST = gap_fast; Stats(k).Gap_iMAT = gap_imat;
+    Stats(k).Gap_Min_COV = gap_cov_min; Stats(k).Gap_Min_iMAT = gap_imat_min; Stats(k).Gap_Min_FAST = gap_fast_min;
+    Stats(k).Var_COV = var_cov; Stats(k).Var_FAST = var_fast; Stats(k).Var_iMAT = var_imat;
+    Stats(k).AvgVar_COV = avg_cov; Stats(k).AvgVar_FAST = avg_fast; Stats(k).AvgVar_iMAT = avg_imat; 
+    Stats(k).Lost_COV = lost_cov_count; Stats(k).Lost_FAST = lost_fast_count; Stats(k).Lost_iMAT = lost_imat_count;
+    Stats(k).Coherence_COV = coh_cov; Stats(k).Coherence_FAST = coh_fast; Stats(k).Coherence_iMAT = coh_imat;
+    Stats(k).Conn_COV = conn_cov; Stats(k).Conn_FAST = conn_fast; Stats(k).Conn_iMAT = conn_imat;
 end
 
 %% 5. VISUALIZATION
 cluster_full_name = strrep(cluster_full_name, '_logCPM', '');
 plotdir = fullfile(resultsDir, "plots");
-
-if ~exist(plotdir, 'dir')
-    mkdir(plotdir);
-end
-
+if ~exist(plotdir, 'dir'), mkdir(plotdir); end
 outputPdfPath = fullfile(plotdir, 'Functional_Gap_and_Variance.pdf');
 T = struct2table(Stats);
 
-fig = figure('Name', 'Gap vs Variance', 'Color', 'w', 'Position', [100 100 1200 1500]);
-t = tiledlayout(4, 1, 'Padding', 'compact');
+fig = figure('Name', 'Gap vs Variance', 'Color', 'w', 'Position', [100 100 1200 1800]);
+t = tiledlayout(5, 1, 'Padding', 'compact');
 
-% Plot 1: Functional Gap
 nexttile;
 bar_data_gap = [T.Gap_COV, T.Gap_FAST, T.Gap_iMAT];
 b1 = bar(bar_data_gap, 'grouped');
 b1(1).FaceColor = [0 0.45 0.74]; b1(2).FaceColor = [0.93 0.69 0.13]; b1(3).FaceColor = [0.85 0.33 0.1];
-ylabel('Gap Size (Reactions Added)');
-title('1. Functional Gap (Distance to Biomass)');
-legend({'COVlux', 'FASTCORE', 'iMAT'}, 'Location', 'best');
+ylabel('Reactions Added'); title('1. Max Media Gap (Distance to Biomass)');
+legend({'COVlux', 'FASTCORE', 'iMAT'}, 'Location', 'best'); xticklabels(T.Cluster); xtickangle(45); grid on;
+
+nexttile;
+bar_data_min = [T.Gap_Min_COV, T.Gap_Min_FAST, T.Gap_Min_iMAT];
+b5 = bar(bar_data_min, 'grouped');
+b5(1).FaceColor = [0 0.45 0.74]; b5(2).FaceColor = [0.93 0.69 0.13]; b5(3).FaceColor = [0.85 0.33 0.1];
+ylabel('Reactions Added'); title('2. Minimal Media Gap (Glucose Stress Test)');
 xticklabels(T.Cluster); xtickangle(45); grid on;
-%functional gap in minimal medium
-%nexttile;
-%bar_data_min = [T.Gap_Min_COV, T.Gap_Min_FAST, T.Gap_Min_iMAT];
-%b5 = bar(bar_data_min, 'grouped');
-%b5(1).FaceColor = [0 0.45 0.74]; b5(2).FaceColor = [0.93 0.69 0.13]; b5(3).FaceColor = [0.85 0.33 0.1];
-%ylabel('Gap Size (Rxns)');
-%title('5. Minimal Media Gap (Glucose/M9 Stress Test)');
-%legend({'COVlux', 'FASTCORE', 'iMAT'}, 'Location', 'best');
-%xticklabels(T.Cluster); xtickangle(45); grid on;
-% Plot 2: Recovered Variance (Fixed Models)
+
 nexttile;
 bar_data_var = [T.Var_COV, T.Var_FAST, T.Var_iMAT];
 b2 = bar(bar_data_var, 'grouped');
 b2(1).FaceColor = [0 0.45 0.74]; b2(2).FaceColor = [0.93 0.69 0.13]; b2(3).FaceColor = [0.85 0.33 0.1];
-ylabel('Explained Variance (%)');
-title('2. Variance Captured by Fixed Functional Models');
-xticklabels(T.Cluster); xtickangle(45); grid on;
-ylim([0 100]);
+ylabel('Variance (%)'); title('3. Variance Captured by Fixed Functional Models');
+xticklabels(T.Cluster); xtickangle(45); grid on; ylim([0 100]);
 
 nexttile;
 bar_data_avg = [T.AvgVar_COV, T.AvgVar_FAST, T.AvgVar_iMAT];
 b3 = bar(bar_data_avg, 'grouped');
 b3(1).FaceColor = [0 0.45 0.74]; b3(2).FaceColor = [0.93 0.69 0.13]; b3(3).FaceColor = [0.85 0.33 0.1];
-ylabel('Avg Variance (Unit/Rxn)');
-title('3. Variance Density');
+ylabel('Variance/Rxn'); title('4. Variance Density');
 xticklabels(T.Cluster); xtickangle(45); grid on;
+
 nexttile;
 bar_data_lost = [T.Lost_COV, T.Lost_FAST, T.Lost_iMAT];
-b3 = bar(bar_data_lost, 'grouped');
-b3(1).FaceColor = [0 0.45 0.74]; b3(2).FaceColor = [0.93 0.69 0.13]; b3(3).FaceColor = [0.85 0.33 0.1];
-ylabel('Number of Lost Reactions');
-title('3. Lost Reactions per Method');
-legend({'COVlux', 'FASTCORE', 'iMAT'}, 'Location', 'best');
+b4 = bar(bar_data_lost, 'grouped');
+b4(1).FaceColor = [0 0.45 0.74]; b4(2).FaceColor = [0.93 0.69 0.13]; b4(3).FaceColor = [0.85 0.33 0.1];
+ylabel('Lost Reactions'); title('5. Total Lost Reactions per Method');
 xticklabels(T.Cluster); xtickangle(45); grid on;
 
 exportgraphics(fig, outputPdfPath);
@@ -445,45 +473,73 @@ fprintf('\nReport saved to: %s\n', outputPdfPath);
 %  HELPER FUNCTIONS
 % =========================================================================
 
-function [gap_size, added_indices] = calculate_gap_and_patch(model, active_mask, bio_idx)
-    % Finds min reactions to add to 'active_mask' to allow biomass > 0.1
+function [gap_size, added_indices] = calculate_gap_and_patch(model, active_mask, target_idx)
     [m, n] = size(model.S);
-    c = zeros(2*n, 1);
     
-    % Penalty only for INACTIVE reactions
-    inactive_idx = find(~active_mask);
-    c(inactive_idx) = 1; c(inactive_idx + n) = 1; 
+    target_flux = 1.0; 
     
-    Aeq = [model.S, -model.S]; beq = zeros(m, 1);
-    A_ineq = zeros(1, 2*n); A_ineq(bio_idx) = -1; A_ineq(bio_idx+n) = 1;
-    b_ineq = -0.1; % Target biomass flux
+    % STRICT MODE: Everything inactive must be paid for.
+    penalizable_mask = ~active_mask;
+    penalizable_mask(target_idx) = false; 
     
-    lb_vec = zeros(2*n, 1); ub_vec = inf(2*n, 1);
-    for i = 1:n
-        if model.ub(i) > 0, ub_vec(i) = model.ub(i); else, ub_vec(i) = 0; end
-        if model.lb(i) < 0, ub_vec(i+n) = abs(model.lb(i)); else, ub_vec(i+n) = 0; end
+    inactive_idx = find(penalizable_mask);
+    k = length(inactive_idx);
+    if k == 0, gap_size = 0; added_indices = []; return; end
+    
+    num_vars = n + k;
+    intcon = (n + 1) : num_vars;
+    c = [zeros(n, 1); ones(k, 1)]; 
+    
+    Aeq = [model.S, sparse(m, k)];
+    beq = zeros(m, 1);
+    
+    num_ineq = 1 + 2*k;
+    A_ineq = sparse(num_ineq, num_vars);
+    b_ineq = zeros(num_ineq, 1);
+    
+    A_ineq(1, target_idx) = -1;
+    b_ineq(1) = -target_flux;
+    
+    lb_total = [model.lb; zeros(k, 1)];
+    ub_total = [model.ub; ones(k, 1)];
+    
+    for i = 1:k
+        rxn_id = inactive_idx(i);
+        M_eff = max([1000, abs(model.ub(rxn_id)), abs(model.lb(rxn_id))]); 
+        
+        A_ineq(1 + i, rxn_id) = 1;
+        A_ineq(1 + i, n + i) = -M_eff;
+        
+        A_ineq(1 + k + i, rxn_id) = -1;
+        A_ineq(1 + k + i, n + i) = -M_eff;
     end
     
-    options = optimoptions('linprog', 'Display', 'none');
+    opts_milp = optimoptions('intlinprog', 'Display', 'off', ...
+        'MaxTime', 120, ... 
+        'IntegerTolerance', 1e-6, ...
+        'ConstraintTolerance', 1e-6);
+    
     try
-        x = linprog(c, A_ineq, b_ineq, Aeq, beq, lb_vec, ub_vec, options);
-        if isempty(x)
-            gap_size = NaN; added_indices = [];
+        [x, ~, exitflag] = intlinprog(c, intcon, A_ineq, b_ineq, Aeq, beq, lb_total, ub_total, opts_milp);
+        
+        if exitflag == 1 || exitflag == 2
+            v_vals = x(1:n);
+            z_vals = round(x(n+1:end));
+            
+            % =========================================================
+            % THE FIX: Catch the Big-M switch OR any trace leak down to 1e-12!
+            % =========================================================
+            flux_mask = (z_vals == 1) | (abs(v_vals(inactive_idx)) > 1e-12);
+            
+            added_indices = inactive_idx(flux_mask);
+            gap_size = length(added_indices);
         else
-            v_net = x(1:n) - x(n+1:end);
-            
-            flux_in_inactive = abs(v_net(inactive_idx));
-            is_added = flux_in_inactive > 1e-5;
-            
-            gap_size = sum(is_added);
-            added_indices = inactive_idx(is_added);
+            gap_size = NaN; added_indices = [];
         end
     catch
-        fprintf("Nan")
         gap_size = NaN; added_indices = [];
     end
 end
-
 function [kept_indices] = run_imat_milp_standard(model, RH, RL)
     [m, n] = size(model.S);
     f = zeros(4*n, 1); f(n+RH)=1; f(3*n+RL)=1;
@@ -518,4 +574,66 @@ function [RH_indices, RL_indices] = getExpressionSets(model, geneExpression)
     RL_tmp = gpr_indices(gpr_expr <= low_thresh);
     RH_indices = RH_tmp(:); RL_indices = RL_tmp(:);
     fprintf("lenght RH indices: %d \n",numel(RH_indices));
+end
+
+
+function [intact_precursors, dead_precursors] = perform_biomass_autopsy(model, kept_indices, bio_idx)
+    % =====================================================================
+    % BIOMASS AUTOPSY: Tests which specific precursors can still be 
+    % synthesized by the pruned metabolic network.
+    % =====================================================================
+    
+    % 1. Identify Precursors (Negative coefficients in the Biomass reaction)
+    bio_col = model.S(:, bio_idx);
+    precursor_mask = bio_col < -1e-6; 
+    precursor_idx = find(precursor_mask);
+    precursor_names = model.mets(precursor_idx);
+    num_precursors = length(precursor_idx);
+    
+    % 2. Apply the Pruning (Shut down the lost reactions)
+    [n_mets, n_rxns] = size(model.S);
+    pruned_model = model;
+    lost_mask = true(n_rxns, 1);
+    lost_mask(kept_indices) = false;
+    
+    pruned_model.lb(lost_mask) = 0;
+    pruned_model.ub(lost_mask) = 0;
+    
+    % 3. Initialize Tracking
+    intact_precursors = {};
+    dead_precursors = {};
+    opts = optimoptions('linprog', 'Display', 'none');
+    
+    % 4. Loop through every single precursor
+    for p = 1:num_precursors
+        m_idx = precursor_idx(p);
+        m_name = precursor_names{p};
+        
+        % Create a temporary model with a new Demand reaction for this precursor
+        % Equation: 1 * Precursor -> [Out]
+        temp_model = pruned_model;
+        temp_model.S = [temp_model.S, sparse(n_mets, 1)];
+        temp_model.S(m_idx, end) = -1; % Drain the metabolite
+        
+        % Objective: Maximize this single demand reaction
+        temp_model.c = zeros(n_rxns + 1, 1);
+        temp_model.c(end) = 1; 
+        
+        temp_model.lb = [temp_model.lb; 0];
+        temp_model.ub = [temp_model.ub; 1000];
+        
+        % Run FBA
+        try
+            [~, fval, exitflag] = linprog(-temp_model.c, [], [], temp_model.S, zeros(n_mets,1), temp_model.lb, temp_model.ub, opts);
+            
+            % If solver succeeds and flux is greater than a tiny threshold, it survives!
+            if exitflag == 1 && -fval > 1e-5
+                intact_precursors{end+1} = m_name;
+            else
+                dead_precursors{end+1} = m_name;
+            end
+        catch
+            dead_precursors{end+1} = m_name;
+        end
+    end
 end

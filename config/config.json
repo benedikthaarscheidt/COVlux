@@ -8,8 +8,8 @@
     "params": {
         "snr_threshold": 5,
         "flux_noise_floor": 1e-9,
-        "lambda_l21": 0.1,
-        "lambda_qr": 1e-7,
+        "lambda_l21": 0.3,
+        "cov_threshold": 0.0001,
         "max_iters": 100,
         "use_big_basis": true,
         "use_conditions": false,

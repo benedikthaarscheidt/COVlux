@@ -1,0 +1,34 @@
+Starting Pipeline at 07-Mar-2026 10:57:41
+-----------------------------------------------------------
+
+[1/6] RUNNING: COVlux
+![CRASH] COVlux failed after 0.05 seconds.
+ERROR: Unable to change current folder to '/Users/benedikthaarscheidt/COVlux/data/models/src/optimization' (Name is nonexistent or not a folder).
+-----------------------------------------------------------
+
+[2/6] RUNNING: master_comparison_cov
+![CRASH] master_comparison_cov failed after 0.03 seconds.
+ERROR: Unable to change current folder to '/Users/benedikthaarscheidt/COVlux/data/models/tests' (Name is nonexistent or not a folder).
+-----------------------------------------------------------
+
+[3/6] RUNNING: biomass_distance
+![CRASH] biomass_distance failed after 0.03 seconds.
+ERROR: Unable to change current folder to '/Users/benedikthaarscheidt/COVlux/data/models/tests' (Name is nonexistent or not a folder).
+-----------------------------------------------------------
+
+[4/6] RUNNING: analyze_biological_state
+![CRASH] analyze_biological_state failed after 0.03 seconds.
+ERROR: Unable to change current folder to '/Users/benedikthaarscheidt/COVlux/data/models/tests' (Name is nonexistent or not a folder).
+-----------------------------------------------------------
+
+[5/6] RUNNING: FBA_comp_min
+![CRASH] FBA_comp_min failed after 0.03 seconds.
+ERROR: Unable to change current folder to '/Users/benedikthaarscheidt/COVlux/data/models/tests' (Name is nonexistent or not a folder).
+-----------------------------------------------------------
+
+[6/6] RUNNING: FBA_comp_max
+![CRASH] FBA_comp_max failed after 0.04 seconds.
+ERROR: Unable to change current folder to '/Users/benedikthaarscheidt/COVlux/data/models/tests' (Name is nonexistent or not a folder).
+-----------------------------------------------------------
+
+Pipeline Completed at 07-Mar-2026 10:57:41

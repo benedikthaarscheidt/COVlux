@@ -198,7 +198,7 @@ for k = 1:length(files)
     
     % Y-Axis = Targets
     set(gca, 'YTick', 1:length(target_rxns_mod), 'YTickLabel', target_rxns_mod, 'TickLabelInterpreter', 'none', 'FontSize', 8);
-    title(sprintf('Minimal Media Capacity (%s)', upper(expr_short_name)));
+    title(sprintf('Maximal Media Capacity (%s)', upper(expr_short_name)));
     
     % Overlay values as text inside the heatmap for clarity
     for i = 1:length(target_rxns_mod)

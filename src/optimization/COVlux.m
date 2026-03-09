@@ -28,7 +28,7 @@ usebigbasis      = config.params.use_big_basis;
 SNR_THRESHOLD    = config.params.snr_threshold;
 FLUX_NOISE_FLOOR = config.params.flux_noise_floor;
 lambda_l21       = config.params.lambda_l21;
-lambda_qr        = config.params.lambda_qr;
+cov_threshold        = config.params.cov_threshold;
 max_iters        = config.params.max_iters;
 verbose          = config.params.verbose;
 div_by_reactions = config.params.div_by_reactions;
@@ -252,6 +252,7 @@ end
 
 allResults = [];
 summaryMetrics = [];
+c=1;
 for k = 1:numel(files)
     filePath = fullfile(files(k).folder, files(k).name);
     [~, fileName, ~] = fileparts(files(k).name);
@@ -317,7 +318,7 @@ for k = 1:numel(files)
     
     % --- Sanitize Covariance ---
     % Enforce PSD and clean noise
-    [X_use, stats] = sanitize_covariance_matrix(X_use, 0, verbose, plotDir, clusterName);
+    [X_use, stats] = sanitize_covariance_matrix(X_use, 1e-5, verbose, plotDir, clusterName);
     %[X_use, scale_factor] = prepare_covariance_matrix(X_use,1000,verbose);
     
     % --- Load Mean Activity (mu) ---
@@ -364,7 +365,7 @@ for k = 1:numel(files)
     %[A_opt_QR, E_red, L] = covlux_symmetric_pipeline_mean_lasso(E_final, X_final, mu_final, lambda_qr, lambda_l21, max_iters, mean_influence, protected_idx, plotDir, clusterName,verbose,div_by_reactions);
     %[A_opt_QR, E_red, L, metrics]= solve_weighted_lasso_covariance(E_final, X_final, verbose, plotDir, clusterName);
     %[A_opt_QR, E_red, L, metrics]= covariance_selection(E_final, X_final,rxnNames, verbose, plotDir, clusterName,mean_influence,lambda_l21,div_by_reactions);
-    [A_opt_QR, E_red, L, metrics]= closed_form_A(E_final, X_final,rxnNames, verbose, plotDir, clusterName,lambda_l21,div_by_reactions,'rowsum');
+    [A_opt_QR, E_red, L, metrics]= closed_form_A(E_final, X_final,rxnNames, verbose, plotDir, clusterName,lambda_l21,cov_threshold,div_by_reactions,'rowsum');
 
     tolerance = 1e-9; 
     
@@ -390,7 +391,7 @@ for k = 1:numel(files)
     
     %%
     
-    E_red=E_final(:,selected_efm_idx);
+    E_red=E_full(:,selected_efm_idx);
     plot_efm_length_distribution(E_red, rxnNames, plotDir, clusterName)
     X_recon_reduced = X_recon_full;  
     
@@ -415,6 +416,12 @@ for k = 1:numel(files)
     else
         summaryMetrics(end+1) = cluster_metrics;
     end
+
+
+    c=c+1;
+    if c==6
+        break
+    end 
     
 end
 

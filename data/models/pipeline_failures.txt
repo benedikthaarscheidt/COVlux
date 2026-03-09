@@ -1,0 +1,6 @@
+[07-Mar-2026 10:57:41] Script: COVlux | Error: Unable to change current folder to '/Users/benedikthaarscheidt/COVlux/data/models/src/optimization' (Name is nonexistent or not a folder).
+[07-Mar-2026 10:57:41] Script: master_comparison_cov | Error: Unable to change current folder to '/Users/benedikthaarscheidt/COVlux/data/models/tests' (Name is nonexistent or not a folder).
+[07-Mar-2026 10:57:41] Script: biomass_distance | Error: Unable to change current folder to '/Users/benedikthaarscheidt/COVlux/data/models/tests' (Name is nonexistent or not a folder).
+[07-Mar-2026 10:57:41] Script: analyze_biological_state | Error: Unable to change current folder to '/Users/benedikthaarscheidt/COVlux/data/models/tests' (Name is nonexistent or not a folder).
+[07-Mar-2026 10:57:41] Script: FBA_comp_min | Error: Unable to change current folder to '/Users/benedikthaarscheidt/COVlux/data/models/tests' (Name is nonexistent or not a folder).
+[07-Mar-2026 10:57:41] Script: FBA_comp_max | Error: Unable to change current folder to '/Users/benedikthaarscheidt/COVlux/data/models/tests' (Name is nonexistent or not a folder).

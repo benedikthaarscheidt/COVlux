@@ -8,9 +8,7 @@
 % 5. Calculates Phenotypes, Objectives, Bottlenecks, and Redundancy.
 % 6. Visualizes Pruning Capacity Trajectories (Subsystems, Energy, AA, MTA)
 % =========================================================================
-
 TARGET_K = []; % Leave empty [] to use the dynamic Optimal K per cluster
-
 %% 1. ROBUST PROJECT ROOT FINDER & AUTO-DETECT LATEST RUN
 if exist(fullfile(pwd, 'config', 'config.json'), 'file')
     projectRoot = pwd;
@@ -33,7 +31,6 @@ end
 if isempty(projectRoot)
     error('Could not locate "config/config.json". Please run from project root.');
 end
-
 % Add required functions to path (for quality_filter)
 functionsPath = fullfile(projectRoot, 'src', 'optimization', 'functions');
 if exist(functionsPath, 'dir')
@@ -41,7 +38,6 @@ if exist(functionsPath, 'dir')
 else
     warning('Functions path not found at: %s. quality_filter may fail.', functionsPath);
 end
-
 % We use the master config strictly to locate the base results folder
 masterConfigFile = fullfile(projectRoot, 'config', 'config.json');
 masterConfig = jsondecode(fileread(masterConfigFile));
@@ -50,7 +46,6 @@ if masterConfig.params.use_big_basis
 else
     covluxBase = fullfile(projectRoot, masterConfig.paths.results_dir, 'COVlux_cov_smallbasis');
 end
-
 d = dir(fullfile(covluxBase, 'Run_*'));
 d = d([d.isdir]);
 if isempty(d)
@@ -60,7 +55,6 @@ end
 latestRun = d(idx(1)).name;
 runDir = fullfile(covluxBase, latestRun);
 fprintf('\nTargeting LATEST COVLUX Results: %s\n', runDir);
-
 logFileName = fullfile(runDir, sprintf('Analysis_Log_%s.txt', datestr(now, 'yyyy-mm-dd_HH-MM')));
 diary(logFileName); 
 fprintf('\n=======================================================\n');
@@ -68,7 +62,6 @@ fprintf('LOGGING STARTED: %s\n', datestr(now));
 fprintf('LOG FILE: %s\n', logFileName);
 fprintf('Targeting LATEST COVLUX Results: %s\n', runDir);
 fprintf('=======================================================\n');
-
 %% 2. LOAD STRICTLY FROM ARCHIVED RUN SETTINGS
 settingsFile = fullfile(runDir, 'run_settings.json');
 if ~exist(settingsFile, 'file')
@@ -81,7 +74,6 @@ mean_influence   = config.params.mean_influence;
 usebigbasis      = config.params.use_big_basis;
 SNR_THRESHOLD    = config.params.snr_threshold;
 FLUX_NOISE_FLOOR = config.params.flux_noise_floor;
-
 fprintf('\n=======================================================\n');
 fprintf('                MODEL RUN PARAMETERS                   \n');
 fprintf('=======================================================\n');
@@ -94,7 +86,6 @@ else
     fprintf('  Evaluation K:         %d EFMs (Hardcoded)\n', TARGET_K);
 end
 fprintf('=======================================================\n\n');
-
 %% 3. LOAD MODEL & DYNAMICALLY BUILD EFM BASIS
 % --- RESOLVE INPUT PATHS (Relative to Project Root) ---
 modelPath   = fullfile(projectRoot, config.paths.models_dir, config.model.model_file);
@@ -102,7 +93,6 @@ efmMatPath  = fullfile(projectRoot, config.paths.models_dir, config.model.efm_ba
 efmMatPath2 = fullfile(projectRoot, config.paths.models_dir, config.model.efm_basis_files{2});
 efmMatPath3 = fullfile(projectRoot, config.paths.models_dir, config.model.efm_basis_files{3});
 efmMatPath4 = fullfile(projectRoot, config.paths.models_dir, config.model.efm_basis_files{4});
-
 fprintf('Loading Metabolic Model: %s\n', modelPath);
 data = load(modelPath);
 if isfield(data, 'pruned_ir')
@@ -115,7 +105,6 @@ S_model = model_ir.S;
 rxnNames = model_ir.rxns;
 model = model_ir; % Map for downstream subsystem lookup
 [m_met, n_rxn] = size(S_model);
-
 fprintf('Loading EFM Basis Matrices...\n');
 S1 = load(efmMatPath, 'EFM_matrix', 'rxnNames');
 S2 = load(efmMatPath2, 'EFM_matrix', 'rxnNames');
@@ -126,7 +115,6 @@ flux4 = S4.EFM_matrix(2:end, :); res4 = S4.EFM_matrix(1, :);
 name1 = string(S1.rxnNames(:));
 name2 = string(S2.rxnNames(:));
 name4 = string(S4.rxnNames(:));
-
 % Find Intersection of Reactions across bases
 common_names = intersect(name1, name2, 'stable');
 common_names = intersect(common_names, name4, 'stable');
@@ -146,7 +134,6 @@ end
 [~, idx1] = ismember(rxnE, name1);
 [~, idx2] = ismember(rxnE, name2);
 [~, idx4] = ismember(rxnE, name4);
-
 % Merge EFM Matrices
 fprintf('Merging EFM Bases...\n');
 if usebigbasis
@@ -159,14 +146,12 @@ else
                       [res2; flux2(idx2,:)], ...
                       [res4; flux4(idx4,:)]];
 end
-
 % Quality Control (Filter Noise)
 [E_full_clean, ~] = quality_filter(E_combined_raw, SNR_THRESHOLD, FLUX_NOISE_FLOOR);
 E_full = E_full_clean(2:end, :); % Remove resistance row
 n_total_efms = size(E_full, 2);
 fprintf('Final Valid EFM Count: %d\n', n_total_efms);
 rxn_names_full = rxnNames;
-
 % Check Coverage
 is_active = any(abs(E_full) > FLUX_NOISE_FLOOR, 2);
 active_names = rxnE(is_active);
@@ -177,19 +162,17 @@ uncovered_list = rxnNames(~full_coverage);
 if ~isempty(uncovered_list)
     fprintf('WARNING: %d Reactions in model are UNCOVERED by EFMs.\n', length(uncovered_list));
 end
-
 %% 4. FIND ALL CLUSTERS AND LOOP
 log_dir = fullfile(runDir, 'log_dir');
 if ~exist(log_dir, 'dir'), mkdir(log_dir); end
-
 logFiles = dir(fullfile(log_dir, '*_removal_log.csv'));
 if isempty(logFiles)
     error('No removal logs (*_removal_log.csv) found in %s', log_dir);
 end
 fprintf('\nFound %d cluster(s) to analyze.\n', length(logFiles));
-
 for f = 1:length(logFiles)
     clusterName = strrep(logFiles(f).name, '_logCPM_removal_log.csv', '');
+    clusterName = strrep(clusterName, '_logCPM', '');
     logPath = fullfile(log_dir, logFiles(f).name);
     
     fprintf('\n\n#######################################################\n');
@@ -210,7 +193,7 @@ for f = 1:length(logFiles)
     
     % --- RECONSTRUCT SURVIVING EFMs ---
     cluster_initial_ids = unique(removal_log.Removed_Global_ID);
-    removed_before_target = removal_log.Removed_Global_ID(removal_log.Remaining_K > current_k);
+    removed_before_target = removal_log.Removed_Global_ID(removal_log.Remaining_K >= current_k);
     surviving_ids = setdiff(cluster_initial_ids, removed_before_target);
     E_survivors = E_full(:, surviving_ids);
     
@@ -297,7 +280,6 @@ for f = 1:length(logFiles)
     else
         fprintf('  Only 1 EFM left. No pairwise comparison possible.\n');
     end
-
     % =====================================================================
     % 5. TRAJECTORY VISUALIZATION (PRUNING CAPACITY)
     % =====================================================================
@@ -423,6 +405,7 @@ for f = 1:length(logFiles)
         end
     end
     
+    
     % --- PLOT 1: Subsystem Shrinkage (Top 10 pruned) with Tiled Layout ---
     % Find subsystems that lost the most capacity
     cap_loss = 100 - subsys_cap_traj(:, end);
@@ -452,7 +435,7 @@ for f = 1:length(logFiles)
     % Exclude subsystems with zero final capacity or zero base? but final_cap could be zero.
     % Take top 5 subsystems by remaining capacity, group rest.
     [sorted_cap, sort_idx] = sort(final_cap, 'descend');
-    top_n = 5;
+    top_n = 30;
     if length(sorted_cap) > top_n
         top_vals = sorted_cap(1:top_n);
         top_names = subsys_names(sort_idx(1:top_n));
@@ -480,6 +463,57 @@ for f = 1:length(logFiles)
     saveas(f1, fullfile(plotDir, sprintf('%s_Subsystem_Trajectory.png', clusterName)));
     close(f1);
 
+    % --- PLOT 1B: DECOMPRESSED PIE CHART (INDEPENDENT LINES) ---
+    top_n_lines = 30; % Keeping exactly the 30 categories you requested!
+    
+    top_idx_pie = sort_idx(1:min(top_n_lines, length(sort_idx)));
+    other_idx_pie = sort_idx(top_n_lines+1:end);
+    
+    pie_traj_data = zeros(length(top_idx_pie) + 1, length(k_steps));
+    pie_traj_names = cell(length(top_idx_pie) + 1, 1);
+    
+    % Populate data exactly from the capacities used in the Pie Chart
+    for i = 1:length(top_idx_pie)
+        pie_traj_data(i, :) = subsys_cap_traj(top_idx_pie(i), :);
+        pie_traj_names{i} = strrep(subsys_names{top_idx_pie(i)}, '_', ' ');
+    end
+    
+    % Sum the remaining minor subsystems into a single "Others" block
+    if ~isempty(other_idx_pie)
+        pie_traj_data(end, :) = sum(subsys_cap_traj(other_idx_pie, :), 1);
+    else
+        pie_traj_data(end, :) = 0;
+    end
+    pie_traj_names{end} = 'Others';
+    
+    % Normalize to 100% at every K step (Relative Share of the Pie)
+    pie_traj_perc = (pie_traj_data ./ sum(pie_traj_data, 1)) * 100;
+    pie_traj_perc(isnan(pie_traj_perc)) = 0; % Prevent NaN errors
+    
+    % Create a wider figure to accommodate a 30-item legend
+    f1b = figure('Name', 'Subsystem Share Over Time', 'Position', [150, 150, 1600, 700], 'Visible', 'off');
+    hold on; grid on;
+    
+    % Use a colormap designed to generate distinct colors for large arrays
+    line_colors = turbo(length(top_idx_pie)); 
+    line_colors = [line_colors; 0.7 0.7 0.7]; % Add gray for the "Others" line
+    
+    % Plot INDEPENDENT LINES instead of stacked areas so they don't push each other up!
+    for i = 1:length(pie_traj_names)
+        plot(k_steps, pie_traj_perc(i, :), 'LineWidth', 2.5, 'Color', line_colors(i,:), 'DisplayName', pie_traj_names{i});
+    end
+    
+    set(gca, 'XDir', 'reverse'); 
+    
+    xlabel('Number of Surviving EFMs (K)', 'FontSize', 12, 'FontWeight', 'bold');
+    ylabel('Relative Share of the Network (%)', 'FontSize', 12, 'FontWeight', 'bold');
+    title(sprintf('Independent Subsystem Shares Over Time (Decompressed) (%s)', upper(clusterName)), 'FontSize', 14);
+    
+    % Set legend to 2 columns so all 30 items fit nicely on the screen
+    legend('Location', 'eastoutside', 'FontSize', 9, 'Interpreter', 'none', 'NumColumns', 2);
+    
+    saveas(f1b, fullfile(plotDir, sprintf('%s_1B_Subsystem_Distribution_Lines.png', clusterName)));
+    close(f1b);
     % --- SURVIVORS VS. LOSERS ---
     
     
@@ -618,7 +652,6 @@ for f = 1:length(logFiles)
     
     saveas(f_dual, fullfile(plotDir, sprintf('%s_Dual_Trajectory_Analysis.png', clusterName)));
     close(f_dual);
-
     % --- NEW PLOT: THE BIGGEST MOVERS (Largest Change in Enrichment) ---
     fprintf('  Generating "Biggest Movers" Enrichment Plot...\n');
     
@@ -694,8 +727,6 @@ for f = 1:length(logFiles)
     end
     
     fprintf('  -> Saved capacity trajectory plots to: %s\n', plotDir);
-
-
     % =====================================================================
     % 6. FBA MAX PRODUCTION SIMULATION (TRUE BIOLOGICAL MINIMAL CAPACITY)
     % =====================================================================
@@ -704,14 +735,12 @@ for f = 1:length(logFiles)
     max_k_val = max(removal_log.Remaining_K);
     k_timeline = unique(round(linspace(max_k_val, current_k, 50)), 'stable');
     k_timeline = sort(k_timeline, 'descend'); 
-
     % 1. Setup Base Bounds
     if isfield(model, 'lb'), lb_base = model.lb; else, lb_base = zeros(n_rxn, 1); end
     if isfield(model, 'ub'), ub_base = model.ub; else, ub_base = 1000 * ones(n_rxn, 1); end
     if isfield(model, 'rev')
         for idx_r=1:n_rxn, if model.rev(idx_r)==0 && lb_base(idx_r)<0, lb_base(idx_r)=0; end, end
     end
-
     % 2. ENFORCE TRUE BIOLOGICAL MINIMAL MEDIUM
     % Close ALL uptake reactions first (starve the cell completely)
     uptake_idx = find(startsWith(lower(rxnNames), 'ex_') & endsWith(lower(rxnNames), '_b'));
@@ -738,7 +767,6 @@ for f = 1:length(logFiles)
     if ~isempty(glc_idx), ub_base(glc_idx) = 10; end 
     o2_idx = find(strcmpi(rxnNames, 'ex_o2_e_b'));
     if ~isempty(o2_idx), ub_base(o2_idx) = 20; end
-
     % 3. Define Targets: Demand (DM), Export (EX_..._f), Biomass, ATPM
     target_rxns_mod = {};
     for i = 1:length(rxnNames)
@@ -814,10 +842,301 @@ for f = 1:length(logFiles)
             fprintf('  -> No internal production capacity found on minimal media. Cell requires rich media supplements.\n');
         end
     end
+    % =====================================================================
+    % 5. TRAJECTORY VISUALIZATION (MACRO-STATES, MICRO-MOVERS, & DIET)
+    % =====================================================================
+    fprintf('\n--- Generating Capacity Trajectory Visualizations ---\n');
+    
+    % Define the timeline (X-axis: K values from max down to target)
+    max_k = max(removal_log.Remaining_K);
+    k_steps = unique(round(linspace(max_k, current_k, 50)), 'stable');
+    k_steps = sort(k_steps, 'descend'); % Time flows from left to right
+    
+    plotDir = fullfile(runDir, 'plots'); 
+    if ~exist(plotDir, 'dir'), mkdir(plotDir); end
+    
+    % *** MASSIVE SPEEDUP: Precompute the global binary matrix ONCE ***
+    E_full_bin = abs(E_full) > 1e-6; 
+    
+    % --- 5A. GRANULAR MAPPING (For Micro-Movers) ---
+    [~, mod_idx_all] = ismember(rxnE, model.rxns);
+    subsys_map = containers.Map();
+    for i = 1:length(rxnE)
+        mod_idx = mod_idx_all(i);
+        if mod_idx > 0 && isfield(model, 'subSystems') && ~isempty(model.subSystems{mod_idx})
+            pw = model.subSystems{mod_idx};
+            if iscell(pw), pw = pw{1}; end
+            if ~isempty(pw)
+                if ~isKey(subsys_map, char(pw)), subsys_map(char(pw)) = []; end
+                subsys_map(char(pw)) = [subsys_map(char(pw)), i];
+            end
+        end
+    end
+    subsys_names = keys(subsys_map);
+
+    % --- 5B. EXCLUSIVE MACRO-CATEGORIES (NO DUPLICATES) ---
+    % --- 5B. EXCLUSIVE MESO-CATEGORIES (FINER DISTINCTIONS) ---
+    fprintf('  Assigning EFMs to exclusive Meso-Categories (Finer Distinctions)...\n');
+    super_cat_names = {'Central Carbon', 'Amino Acids', 'Nucleotides', 'Lipids & Envelope', 'Cofactors & Vitamins', 'Transport & Exchange', 'Other'};
+    
+    kw_central = {'glycolysis', 'gluconeogenesis', 'tca', 'citric', 'pentose phosphate', 'pyruvate', 'carbon', 'glyoxylate'};
+    kw_aa      = {'amino acid', 'valine', 'leucine', 'isoleucine', 'alanine', 'aspartate', 'glutamate', 'histidine', 'phenylalanine', 'tyrosine', 'tryptophan', 'arginine', 'proline', 'cysteine', 'methionine', 'threonine', 'serine', 'glycine'};
+    kw_nuc     = {'nucleotide', 'purine', 'pyrimidine', 'salvage'};
+    kw_lipid   = {'lipid', 'fatty acid', 'envelope', 'murein', 'lps', 'peptidoglycan', 'membrane'};
+    kw_cofac   = {'cofactor', 'vitamin', 'folate', 'porphyrin', 'mta', 'methyl', 'nad', 'flavin', 'coenzyme'};
+    kw_trans   = {'transport', 'exchange', 'porin', 'efflux', 'extracellular'};
+
+    % Map every reaction to exactly ONE meso-category
+    rxn_to_cat = 7 * ones(length(rxnE), 1); % Default is 7 ('Other')
+    for i = 1:length(rxnE)
+        mod_idx = mod_idx_all(i);
+        if mod_idx > 0 && isfield(model, 'subSystems') && ~isempty(model.subSystems{mod_idx})
+            pw = lower(char(model.subSystems{mod_idx}));
+            if any(contains(pw, kw_central)), rxn_to_cat(i) = 1;
+            elseif any(contains(pw, kw_aa)), rxn_to_cat(i) = 2;
+            elseif any(contains(pw, kw_nuc)), rxn_to_cat(i) = 3;
+            elseif any(contains(pw, kw_lipid)), rxn_to_cat(i) = 4;
+            elseif any(contains(pw, kw_cofac)), rxn_to_cat(i) = 5;
+            elseif any(contains(pw, kw_trans)), rxn_to_cat(i) = 6;
+            end
+        end
+    end
+    
+    % DYNAMIC UBIQUITY FILTER
+    valid_cats = []; total_efms = size(E_full_bin, 2);
+    fprintf('  [Ubiquity Filter Results]:\n');
+    for c = 1:7
+        in_cat_mask = (rxn_to_cat == c);
+        if sum(in_cat_mask) > 0
+            prevalence = sum(any(E_full_bin(in_cat_mask, :), 1)) / total_efms;
+            if prevalence > 0.98
+                fprintf('    -> IGNORING: "%s" (Present in %.1f%% of all EFMs)\n', super_cat_names{c}, prevalence*100);
+            else
+                fprintf('    -> KEEPING:  "%s" (Present in %.1f%% of all EFMs)\n', super_cat_names{c}, prevalence*100);
+                valid_cats(end+1) = c;
+            end
+        end
+    end
+    
+    % WINNER-TAKES-ALL ASSIGNMENT
+    C_mat = zeros(length(valid_cats), length(rxnE));
+    for i = 1:length(valid_cats), C_mat(i, rxn_to_cat == valid_cats(i)) = 1; end
+    EFM_scores = C_mat * E_full_bin; 
+    [max_scores, best_idx] = max(EFM_scores, [], 1);
+    
+    global_efm_assignments = zeros(1, total_efms);
+    for j = 1:total_efms
+        if max_scores(j) > 0, global_efm_assignments(j) = valid_cats(best_idx(j)); end
+    end
+    
+    plot_cats = [valid_cats, 0]; 
+    plot_cat_names = super_cat_names(valid_cats); 
+    plot_cat_names{end+1} = 'Core/Ubiquitous Only';
+
+    % --- 5C. METABOLIC DIET PREP ---
+    rxnE_lower = lower(string(rxnE));
+    carbon_sources = {'Glucose', 'EX_glc__D_e_b'; 'Acetate', 'EX_ac_e_b'; 'Glycerol', 'EX_glyc_e_b'; 'Succinate', 'EX_succ_e_b'; 'Lactate', 'EX_lac__D_e_b'; 'Fructose', 'EX_fru_e_b'};
+    o2_idx = find(rxnE_lower == 'ex_o2_e_b' | rxnE_lower == 'ex_o2_e', 1);
+    src_idx = zeros(size(carbon_sources, 1), 1);
+    for i = 1:size(carbon_sources, 1)
+        base_rxn = lower(carbon_sources{i, 2});
+        idx = find(rxnE_lower == base_rxn | rxnE_lower == strrep(base_rxn, '_b', ''), 1);
+        if ~isempty(idx), src_idx(i) = idx; end
+    end
+    active_src_idx = src_idx(src_idx > 0); active_sources = carbon_sources(src_idx > 0, :);
+
+    % --- Pre-allocate Data Arrays ---
+    super_counts_abs = zeros(length(plot_cats), length(k_steps)); 
+    super_counts_rel = zeros(length(plot_cats), length(k_steps)); 
+    subsys_cap_traj_rel = zeros(length(subsys_names), length(k_steps)); 
+    src_traj_rel = zeros(length(active_src_idx), length(k_steps));
+    strat_aerobic = zeros(1, length(k_steps)); strat_ferment = zeros(1, length(k_steps));
+
+    initial_assignments = global_efm_assignments(cluster_initial_ids);
+    initial_totals = zeros(length(plot_cats),1);
+    for i = 1:length(plot_cats), initial_totals(i) = sum(initial_assignments == plot_cats(i)); end
+
+    % --- 5D. THE UNIFIED FAST LOOP ---
+    fprintf('  Calculating Trajectories...\n');
+    for t = 1:length(k_steps)
+        step_k = k_steps(t);
+        step_removed = removal_log.Removed_Global_ID(removal_log.Remaining_K > step_k);
+        step_survivors = setdiff(cluster_initial_ids, step_removed);
+        if isempty(step_survivors), continue; end
+        
+        E_step_bin = E_full_bin(:, step_survivors);
+        num_surv = length(step_survivors);
+        
+        % 1. Macro-Categories (Exclusive)
+        surv_assignments = global_efm_assignments(step_survivors);
+        for i = 1:length(plot_cats)
+            c = plot_cats(i);
+            current_count = sum(surv_assignments == c);
+            if initial_totals(i) > 0, super_counts_abs(i, t) = (current_count / initial_totals(i)) * 100; end
+            if num_surv > 0, super_counts_rel(i, t) = (current_count / num_surv) * 100; end
+        end
+
+        % 2. Micro-Movers (Granular Subsystems)
+        for s = 1:length(subsys_names)
+            efms_using_sys = any(E_step_bin(subsys_map(subsys_names{s}), :), 1);
+            if num_surv > 0, subsys_cap_traj_rel(s, t) = (sum(efms_using_sys) / num_surv) * 100; end
+        end
+
+        % 3. Metabolic Diet & Strategy
+        if num_surv > 0 && (~isempty(active_src_idx) || ~isempty(o2_idx))
+            for s = 1:length(active_src_idx)
+                src_traj_rel(s, t) = (sum(E_step_bin(active_src_idx(s), :)) / num_surv) * 100;
+            end
+            
+            if ~isempty(active_src_idx), is_carbon_active = any(E_step_bin(active_src_idx, :), 1); else, is_carbon_active = true(1, num_surv); end
+            if ~isempty(o2_idx), is_aerobic_efm = E_step_bin(o2_idx, :); else, is_aerobic_efm = false(1, num_surv); end
+            
+            strat_aerobic(t) = (sum(is_carbon_active & is_aerobic_efm) / num_surv) * 100;
+            strat_ferment(t) = (sum(is_carbon_active & ~is_aerobic_efm) / num_surv) * 100;
+        end
+    end
+
+    % =====================================================================
+    % --- PLOT 1: MACRO-BIOLOGY (100% STACKED AREA) ---
+    f_macro = figure('Name', 'Macro-State Trajectory', 'Position', [100, 100, 1500, 600], 'Visible', 'off');
+    tiledlayout(1, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+    
+    % Expanded Color Palette for the 7 Categories
+    master_colors = containers.Map({1, 2, 3, 4, 5, 6, 7, 0}, ...
+        {[0.85, 0.32, 0.09], ... % Red (Central Carbon)
+         [0.00, 0.44, 0.74], ... % Blue (Amino Acids)
+         [0.30, 0.75, 0.93], ... % Cyan (Nucleotides)
+         [0.49, 0.18, 0.56], ... % Purple (Lipids)
+         [0.93, 0.69, 0.13], ... % Gold (Cofactors)
+         [0.46, 0.67, 0.18], ... % Green (Transport)
+         [0.50, 0.50, 0.50], ... % Gray (Other)
+         [0.20, 0.20, 0.20]});   % Dark Gray (Core/Ubiquitous)
+         
+    dyn_colors = zeros(length(plot_cats), 3); 
+    for i=1:length(plot_cats), dyn_colors(i,:) = master_colors(plot_cats(i)); end
+
+    % LEFT: Absolute Pruning
+    ax1 = nexttile; hold on; grid on;
+    for i = 1:length(plot_cats), plot(k_steps, super_counts_abs(i, :), 'LineWidth', 3, 'Color', dyn_colors(i,:)); end
+    set(ax1, 'XDir', 'reverse'); xlabel(ax1, 'Surviving EFMs (K)', 'FontWeight', 'bold'); ylabel(ax1, 'Absolute Remaining Count (%)', 'FontWeight', 'bold'); title(ax1, 'Physical EFM Pruning', 'FontSize', 14);
+
+    % RIGHT: Relative Enrichment (100% Stacked Area)
+    ax2 = nexttile; hold on; grid on;
+    h_area = area(k_steps, super_counts_rel', 'LineStyle', 'none');
+    for i = 1:length(plot_cats)
+        h_area(i).FaceColor = dyn_colors(i,:); h_area(i).FaceAlpha = 0.8;
+        h_area(i).DisplayName = sprintf('%s (%.1f%%)', plot_cat_names{i}, super_counts_rel(i, end));
+    end
+    set(ax2, 'XDir', 'reverse'); ylim(ax2, [0, 100]);
+    xlabel(ax2, 'Surviving EFMs (K)', 'FontWeight', 'bold'); ylabel(ax2, 'Composition of Surviving Pool (%)', 'FontWeight', 'bold'); 
+    title(ax2, 'Biological Focus Shift (Exclusive Assignment)', 'FontSize', 14); legend(ax2, 'Location', 'eastoutside', 'FontSize', 10);
+    saveas(f_macro, fullfile(plotDir, sprintf('%s_Macro_Trajectory_Analysis.png', clusterName))); close(f_macro);
+
+    % =====================================================================
+    % --- PLOT 2: BIGGEST MICRO-MOVERS ---
+    enrichment_change = subsys_cap_traj_rel(:, end) - subsys_cap_traj_rel(:, 1);
+    [~, sort_change] = sort(enrichment_change, 'descend'); num_movers = 5; 
+    
+    f_movers = figure('Name', 'Biggest Movers', 'Position', [150, 150, 1000, 600], 'Visible', 'off'); hold on; grid on;
+    gainer_colors = winter(num_movers); loser_colors = autumn(num_movers);
+    for i = 1:num_movers
+        idx = sort_change(i);
+        plot(k_steps, subsys_cap_traj_rel(idx, :), 'LineWidth', 3, 'Color', gainer_colors(i,:), 'DisplayName', sprintf('[SURGED +%.1f%%] %s', enrichment_change(idx), subsys_names{idx}));
+    end
+    for i = 1:num_movers
+        idx = sort_change(end-num_movers+i); 
+        plot(k_steps, subsys_cap_traj_rel(idx, :), 'LineWidth', 3, 'LineStyle', '-.', 'Color', loser_colors(i,:), 'DisplayName', sprintf('[CRASHED %.1f%%] %s', enrichment_change(idx), subsys_names{idx}));
+    end
+    set(gca, 'XDir', 'reverse'); xlabel('Surviving EFMs (K)', 'FontSize', 12, 'FontWeight', 'bold'); ylabel('Relative Enrichment (%)', 'FontSize', 12, 'FontWeight', 'bold');
+    title(sprintf('The Biggest Micro-Movers (%s)', upper(clusterName)), 'FontSize', 14); legend('Location', 'eastoutside', 'Interpreter', 'none');
+    saveas(f_movers, fullfile(plotDir, sprintf('%s_Biggest_Movers_Enrichment.png', clusterName))); close(f_movers);
+
+    % =====================================================================
+    % --- PLOT 3: METABOLIC DIET & STRATEGY ---
+    if ~isempty(active_src_idx) || ~isempty(o2_idx)
+        f_diet = figure('Name', 'Diet & Strategy', 'Position', [150, 150, 1500, 500], 'Visible', 'off'); tl_diet = tiledlayout(1, 2, 'TileSpacing', 'compact');
+        
+        ax1 = nexttile; hold on; grid on; diet_c = lines(length(active_src_idx)); 
+        for s = 1:length(active_src_idx), plot(k_steps, src_traj_rel(s, :), 'LineWidth', 3, 'Color', diet_c(s,:), 'DisplayName', active_sources{s, 1}); end
+        set(ax1, 'XDir', 'reverse'); xlabel(ax1, 'Surviving EFMs (K)'); ylabel(ax1, 'Abundance in EFM Pool (%)'); title(ax1, 'Carbon Substrate Abundance'); legend(ax1, 'Location', 'eastoutside');
+        
+        ax2 = nexttile; hold on; grid on;
+        plot(k_steps, strat_aerobic, 'LineWidth', 3, 'Color', [0.00, 0.44, 0.74], 'DisplayName', 'Aerobic Respiration (+O2)');
+        plot(k_steps, strat_ferment, 'LineWidth', 3, 'Color', [0.85, 0.32, 0.09], 'DisplayName', 'Fermentation/Anaerobic (-O2)');
+        set(ax2, 'XDir', 'reverse'); xlabel(ax2, 'Surviving EFMs (K)'); ylabel(ax2, 'Abundance in EFM Pool (%)'); title(ax2, 'Energy Strategy: Respiration vs. Fermentation'); legend(ax2, 'Location', 'eastoutside');
+        
+        title(tl_diet, sprintf('Metabolic Strategy Shifts (%s)', upper(clusterName)), 'FontSize', 16, 'FontWeight', 'bold');
+        saveas(f_diet, fullfile(plotDir, sprintf('%s_Metabolic_Strategy.png', clusterName))); close(f_diet);
+    end
+
+    % =====================================================================
+    % --- PLOT: THE BIOLOGICAL SPECIALIZATION SIGNAL (FOLD-ENRICHMENT) ---
+    % =====================================================================
+    fprintf('  Extracting hidden specialization signals (Fold-Enrichment)...\n');
+    
+    % We need the relative % share of each subsystem at every K step
+    sys_rel_share = zeros(length(subsys_names), length(k_steps));
+    
+    for t = 1:length(k_steps)
+        step_surv = setdiff(cluster_initial_ids, removal_log.Removed_Global_ID(removal_log.Remaining_K > k_steps(t)));
+        if isempty(step_surv), continue; end
+        
+        E_step_b = abs(E_full(:, step_surv)) > 1e-6;
+        num_surv = length(step_surv);
+        
+        for s = 1:length(subsys_names)
+            % What percentage of the SURVIVING EFMs use this subsystem?
+            efms_using_sys = sum(any(E_step_b(subsys_map(subsys_names{s}), :), 1));
+            sys_rel_share(s, t) = (efms_using_sys / num_surv) * 100;
+        end
+    end
+    
+    % Calculate Fold Enrichment: (Share at current K) / (Share at starting K)
+    % Add a tiny epsilon to avoid division by zero for pathways that started dead
+    fold_enrichment = zeros(length(subsys_names), length(k_steps));
+    base_share = sys_rel_share(:, 1) + 1e-3; 
+    
+    for t = 1:length(k_steps)
+        fold_enrichment(:, t) = sys_rel_share(:, t) ./ base_share;
+    end
+    
+    % Find the truly "Special" pathways: those that MULTIPLIED the most
+    % We filter out pathways that are just tiny noise (must reach at least 5% prevalence)
+    final_share = sys_rel_share(:, end);
+    valid_special = find(final_share > 5.0); 
+    
+    % Sort by maximum fold enrichment
+    [~, sort_fold] = sort(fold_enrichment(valid_special, end), 'descend');
+    
+    % Grab the top 8 most highly enriched "special" pathways
+    num_special = min(8, length(sort_fold));
+    top_special_idx = valid_special(sort_fold(1:num_special));
+    
+    f_special = figure('Name', 'Biological Specialization', 'Position', [150, 150, 1200, 600], 'Visible', 'off');
+    hold on; grid on;
+    
+    special_colors = turbo(num_special);
+    
+    for i = 1:num_special
+        idx = top_special_idx(i);
+        plot(k_steps, fold_enrichment(idx, :), 'LineWidth', 3, 'Color', special_colors(i,:), ...
+            'DisplayName', sprintf('[%.1fx Spike] %s (Ends at %.1f%%)', fold_enrichment(idx, end), strrep(subsys_names{idx},'_',' '), final_share(idx)));
+    end
+    
+    % Draw a baseline at 1.0 (No enrichment)
+    yline(1.0, 'k--', 'LineWidth', 2, 'DisplayName', 'Baseline (No Enrichment)');
+    
+    set(gca, 'XDir', 'reverse'); 
+    xlabel('Number of Surviving EFMs (K)', 'FontSize', 12, 'FontWeight', 'bold');
+    ylabel('Fold-Enrichment (Multiplier vs. Initial Pool)', 'FontSize', 12, 'FontWeight', 'bold');
+    title(sprintf('The Specialization Signal: Identifying Unique Metabolic States (%s)', upper(clusterName)), 'FontSize', 14);
+    legend('Location', 'eastoutside', 'FontSize', 10, 'Interpreter', 'none');
+    
+    saveas(f_special, fullfile(plotDir, sprintf('%s_Specialization_Fold_Enrichment.png', clusterName)));
+    close(f_special);
 end
 fprintf('\n=======================================================\n');
 fprintf('ANALYSIS COMPLETE: %s\n', datestr(now));
 fprintf('LOG SAVED TO: %s\n', logFileName);
 fprintf('=======================================================\n');
-
 diary off; % STOP LOGGING
